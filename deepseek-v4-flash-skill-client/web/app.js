@@ -12,6 +12,8 @@ const elements = {
   composer: document.querySelector("#composer"),
   prompt: document.querySelector("#prompt"),
   sendButton: document.querySelector("#send-button"),
+  chatToolbar: document.querySelector("#chat-toolbar"),
+  clearChatButton: document.querySelector("#clear-chat-button"),
   accessDialog: document.querySelector("#access-dialog"),
   accessForm: document.querySelector("#access-form"),
   accessKey: document.querySelector("#access-key"),
@@ -68,6 +70,7 @@ function createThinkingElement() {
 function render() {
   const hasConversation = state.messages.length > 0 || state.loading || Boolean(state.error);
   elements.conversation.hidden = !hasConversation;
+  elements.chatToolbar.hidden = !hasConversation;
   elements.workspace.classList.toggle("is-chatting", hasConversation);
   elements.conversation.replaceChildren(...state.messages.map(createMessageElement));
   if (state.loading) elements.conversation.append(createThinkingElement());
@@ -190,6 +193,19 @@ elements.prompt.addEventListener("keydown", (event) => {
     event.preventDefault();
     void sendMessage(elements.prompt.value);
   }
+});
+
+elements.clearChatButton.addEventListener("click", () => {
+  // 若模型仍在生成，先终止请求，避免旧回答在清空后重新写回页面。
+  state.controller?.abort();
+  state.messages = [];
+  state.loading = false;
+  state.controller = null;
+  state.error = "";
+  elements.prompt.value = "";
+  resizePrompt();
+  render();
+  elements.prompt.focus();
 });
 
 async function loadStatus() {
