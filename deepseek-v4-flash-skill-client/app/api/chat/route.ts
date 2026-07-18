@@ -6,7 +6,7 @@ type ChatMessage = {
   content: string;
 };
 
-const MAX_MESSAGES = 30;
+const MAX_MESSAGES = 200;
 const MAX_MESSAGE_LENGTH = 12_000;
 const MAX_TOTAL_LENGTH = 60_000;
 const RATE_LIMIT = 10;

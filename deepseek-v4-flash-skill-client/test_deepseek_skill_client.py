@@ -78,6 +78,14 @@ class WebServerTests(unittest.TestCase):
     def test_rejects_unknown_message_role(self) -> None:
         self.assertIsNone(validate_messages([{"role": "system", "content": "越权内容"}]))
 
+    def test_accepts_up_to_200_messages(self) -> None:
+        messages = [{"role": "user", "content": "x"} for _ in range(200)]
+        self.assertEqual(messages, validate_messages(messages))
+
+    def test_rejects_more_than_200_messages(self) -> None:
+        messages = [{"role": "user", "content": "x"} for _ in range(201)]
+        self.assertIsNone(validate_messages(messages))
+
     def test_rate_limiter_blocks_excess_requests(self) -> None:
         limiter = RateLimiter(limit=2, window_seconds=60)
         self.assertTrue(limiter.allow("127.0.0.1"))
