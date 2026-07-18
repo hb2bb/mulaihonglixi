@@ -31,7 +31,7 @@ function createMessageElement(message) {
   const meta = document.createElement("div");
   meta.className = "message-meta";
   const role = document.createElement("span");
-  role.textContent = message.role === "user" ? "YOU" : "FLASH";
+  role.textContent = message.role === "user" ? "YOU" : "PRO";
   meta.append(role);
 
   if (message.role === "assistant") {
@@ -59,7 +59,7 @@ function createThinkingElement() {
   article.className = "message assistant thinking-message";
   const meta = document.createElement("div");
   meta.className = "message-meta";
-  meta.innerHTML = "<span>FLASH</span>";
+  meta.innerHTML = "<span>PRO</span>";
   const body = document.createElement("div");
   body.className = "thinking";
   body.innerHTML = "<i></i><i></i><i></i><span>正在推演</span>";

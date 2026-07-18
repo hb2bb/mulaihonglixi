@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DeepSeek V4 Flash 客户端：每次请求都自动注入当前可用的 Skills。"""
+"""DeepSeek V4 Pro 客户端：每次请求都自动注入当前可用的 Skills。"""
 
 from __future__ import annotations
 
@@ -144,7 +144,7 @@ class DeepSeekSkillClient:
         skill_loader: SkillLoader,
         *,
         base_url: str = "https://api.deepseek.com",
-        model: str = "deepseek-v4-flash",
+        model: str = "deepseek-v4-pro",
         timeout: float = 120.0,
         thinking: bool = True,
         reasoning_effort: str = "high",
@@ -244,7 +244,7 @@ def parse_extra_skill_roots(raw_value: str) -> list[Path]:
 
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="调用 DeepSeek V4 Flash，并在每次请求中自动注入现有 Skills。"
+        description="调用 DeepSeek V4 Pro，并在每次请求中自动注入现有 Skills。"
     )
     parser.add_argument("prompt", nargs="?", help="单次提问；不传时进入交互模式")
     parser.add_argument(
@@ -264,7 +264,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 def run_interactive(client: DeepSeekSkillClient, max_tokens: int | None) -> None:
     """简单的多轮命令行对话；每一轮请求仍会重新加载 Skills。"""
     history: list[dict[str, str]] = []
-    print("已连接 DeepSeek V4 Flash。输入 /exit 退出，/clear 清空对话。")
+    print("已连接 DeepSeek V4 Pro。输入 /exit 退出，/clear 清空对话。")
     while True:
         try:
             user_input = input("\n你> ").strip()
@@ -317,7 +317,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         api_key=api_key,
         skill_loader=loader,
         base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-        model=os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash"),
+        model=os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro"),
         thinking=not args.no_thinking,
         reasoning_effort=args.reasoning_effort,
     )

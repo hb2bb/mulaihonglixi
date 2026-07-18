@@ -103,7 +103,7 @@ class FlashLabServer(ThreadingHTTPServer):
             api_key=self.api_key,
             skill_loader=self.skill_loader,
             base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-            model=os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash"),
+            model=os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro"),
             thinking=True,
             reasoning_effort="high",
         )
@@ -133,7 +133,7 @@ class FlashLabHandler(BaseHTTPRequestHandler):
             self.send_json(
                 {
                     "ready": bool(self.server.api_key),
-                    "model": os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash"),
+                    "model": os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro"),
                     "skill_file_count": len(self.server.skill_loader.load()),
                     "access_key_required": bool(self.server.access_key),
                 }
@@ -221,7 +221,7 @@ class FlashLabHandler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="启动 Flash Lab 网页体验台")
+    parser = argparse.ArgumentParser(description="启动 Pro Lab 网页体验台")
     parser.add_argument("--host", default="127.0.0.1", help="监听地址；公开到局域网可用 0.0.0.0")
     parser.add_argument("--port", type=int, default=8000, help="监听端口")
     parser.add_argument("--no-user-skills", action="store_true", help="只加载项目级 Skills")
@@ -229,7 +229,7 @@ def main() -> int:
 
     load_dotenv(SITE_ROOT / ".env")
     server = FlashLabServer((args.host, args.port), include_user_skills=not args.no_user_skills)
-    print(f"Flash Lab 已启动：http://{args.host}:{args.port}")
+    print(f"Pro Lab 已启动：http://{args.host}:{args.port}")
     print(f"已发现 {len(server.skill_loader.load())} 个 Skill 文件。")
     if not server.api_key:
         print("提示：尚未配置 DEEPSEEK_API_KEY，页面可打开，但模型调用会被禁用。")

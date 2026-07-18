@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     /\/$/,
     "",
   );
-  const model = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
+  const model = process.env.DEEPSEEK_MODEL || "deepseek-v4-pro";
 
   try {
     const upstream = await fetch(`${baseUrl}/chat/completions`, {

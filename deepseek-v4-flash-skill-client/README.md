@@ -1,4 +1,4 @@
-# DeepSeek V4 Flash + Skills 客户端
+# DeepSeek V4 Pro + Skills 客户端
 
 项目现在包含 Python 命令行客户端和网页体验台。两者都会把现有 Skills 作为 `system` 消息加入模型输入；API Key 仅由服务端读取，不会发送到浏览器。
 
@@ -139,7 +139,7 @@ python3 -m unittest -v
 ## API 信息
 
 - Base URL：`https://api.deepseek.com`
-- 模型 ID：`deepseek-v4-flash`
+- 模型 ID：`deepseek-v4-pro`
 - 接口：OpenAI 兼容的 `POST /chat/completions`
 
 参考：[DeepSeek API 官方文档](https://api-docs.deepseek.com/)

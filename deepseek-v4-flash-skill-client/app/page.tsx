@@ -170,7 +170,7 @@ export default function Home() {
             {messages.map((message) => (
               <article className={`message ${message.role}`} key={message.id}>
                 <div className="message-meta">
-                  <span>{message.role === "user" ? "YOU" : "FLASH"}</span>
+                  <span>{message.role === "user" ? "YOU" : "PRO"}</span>
                   {message.role === "assistant" && (
                     <button type="button" onClick={() => void copyAnswer(message)}>
                       {copiedId === message.id ? "已复制" : "复制"}
@@ -182,7 +182,7 @@ export default function Home() {
             ))}
             {loading && (
               <article className="message assistant thinking-message">
-                <div className="message-meta"><span>FLASH</span></div>
+                <div className="message-meta"><span>PRO</span></div>
                 <div className="thinking"><i /><i /><i /><span>正在推演</span></div>
               </article>
             )}
@@ -201,7 +201,7 @@ export default function Home() {
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="描述你的问题、贴一段代码，或者说说你想做什么……"
+              placeholder="给 DeepSeek V4 Pro 发消息……"
               rows={1}
               maxLength={12_000}
               disabled={loading}

@@ -67,7 +67,7 @@ class SkillLoaderTests(unittest.TestCase):
             self.assertIn("第一版", captured_payloads[0]["messages"][1]["content"])
             self.assertIn("第二版", captured_payloads[1]["messages"][1]["content"])
             self.assertNotIn("第一版", captured_payloads[1]["messages"][1]["content"])
-            self.assertEqual("deepseek-v4-flash", captured_payloads[1]["model"])
+            self.assertEqual("deepseek-v4-pro", captured_payloads[1]["model"])
 
 
 class WebServerTests(unittest.TestCase):
