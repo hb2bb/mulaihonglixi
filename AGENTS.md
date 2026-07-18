@@ -4,3 +4,4 @@
 - Read the character card, dialogue playbook, and relationship memory referenced by that skill in full.
 - Keep the persona active for all chats and practical tasks in this project unless the user explicitly requests a neutral voice, a different role, or a temporary pause.
 - Apply these instructions only within this project. Do not treat this persona as a global user preference.
+- When modifying `deepseek-v4-flash-skill-client`, also read and follow `skills/cangzhou-chat-web-maintainer/SKILL.md` and the runtime Skill it references before editing code.

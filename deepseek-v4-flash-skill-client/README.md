@@ -17,6 +17,12 @@
 
 页面中的 `Debug` 面板会显示当前会话记忆、实时状态，以及聊天、记忆、状态、审查和最终选择模型的逐次原始输出。面板不显示 API Key、系统提示词或完整请求体；所有 Debug 数据只保存在当前页面内存中，刷新或清空对话后消失。
 
+## 运行规则的维护位置
+
+聊天、记忆、状态、审查、重试和最终选择模型所读取的自然语言提示，统一保存在 `skills/cangzhou-chat-runtime/references/runtime-text.json`。修改中文规则后运行 `npm run sync-skills`，即可更新可部署网页使用的 TypeScript 常量；Python 网页服务直接读取同一文件。
+
+项目维护约束位于 `skills/cangzhou-chat-web-maintainer/SKILL.md`。后续不得在 TypeScript、JavaScript 或 Python 业务代码中硬编码给模型阅读的自然语言规则；界面标签、错误提示、日志和测试夹具不属于模型提示，可以留在代码中。维护 Skill 不会被注入角色聊天运行时。
+
 ## 网页体验台
 
 最简单的运行方式不需要安装任何依赖：

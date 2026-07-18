@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from deepseek_skill_client import DeepSeekSkillClient, SkillLoader
 from web_server import (
+    RUNTIME_TEXT,
     RateLimiter,
     generate_reviewed_reply,
     normalize_session_memory,
@@ -70,12 +71,22 @@ class SkillLoaderTests(unittest.TestCase):
                 skill_file.write_text("第二版", encoding="utf-8")
                 client.chat([{"role": "user", "content": "再来一次"}])
 
-            self.assertIn("第一版", captured_payloads[0]["messages"][1]["content"])
-            self.assertIn("第二版", captured_payloads[1]["messages"][1]["content"])
-            self.assertNotIn("第一版", captured_payloads[1]["messages"][1]["content"])
+            first_system = next(
+                message["content"]
+                for message in captured_payloads[0]["messages"]
+                if message["role"] == "system"
+            )
+            second_system = next(
+                message["content"]
+                for message in captured_payloads[1]["messages"]
+                if message["role"] == "system"
+            )
+            self.assertIn("第一版", first_system)
+            self.assertIn("第二版", second_system)
+            self.assertNotIn("第一版", second_system)
             self.assertEqual("deepseek-v4-pro", captured_payloads[1]["model"])
 
-    def test_chat_injects_session_memory_and_live_state(self) -> None:
+    def test_chat_injects_additional_runtime_messages(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             skill_dir = root / "skills" / "demo"
@@ -91,8 +102,10 @@ class SkillLoaderTests(unittest.TestCase):
             with patch("deepseek_skill_client.urlopen", side_effect=fake_urlopen):
                 client.chat(
                     [{"role": "user", "content": "你好"}],
-                    session_memory="- 用户喜欢推理",
-                    live_state="- 角色心情：平静",
+                    additional_system_messages=(
+                        "- 用户喜欢推理",
+                        "- 角色心情：平静",
+                    ),
                 )
 
             contents = [message["content"] for message in captured_payloads[0]["messages"]]
@@ -171,10 +184,10 @@ class WebServerTests(unittest.TestCase):
     def test_review_passes_first_candidate_without_regeneration(self) -> None:
         class FakeChatClient:
             def __init__(self) -> None:
-                self.feedback: list[str] = []
+                self.runtime_messages: list[list[str]] = []
 
             def chat(self, messages, **kwargs):  # type: ignore[no-untyped-def]
-                self.feedback.append(kwargs.get("revision_feedback", ""))
+                self.runtime_messages.append(list(kwargs.get("additional_system_messages", ())))
                 return "第一份候选"
 
         class FakeReviewClient:
@@ -191,17 +204,18 @@ class WebServerTests(unittest.TestCase):
             "",
         )
         self.assertEqual("第一份候选", content)
-        self.assertEqual([""], chat_client.feedback)
+        self.assertEqual(1, len(chat_client.runtime_messages))
+        self.assertNotIn("previous-candidate", "\n".join(chat_client.runtime_messages[0]))
         self.assertEqual(1, debug["selected_attempt"])
 
     def test_review_retries_twice_then_selector_picks_existing_candidate(self) -> None:
         class FakeChatClient:
             def __init__(self) -> None:
-                self.feedback: list[str] = []
+                self.runtime_messages: list[list[str]] = []
 
             def chat(self, messages, **kwargs):  # type: ignore[no-untyped-def]
-                self.feedback.append(kwargs.get("revision_feedback", ""))
-                return f"候选{len(self.feedback)}"
+                self.runtime_messages.append(list(kwargs.get("additional_system_messages", ())))
+                return f"候选{len(self.runtime_messages)}"
 
         class FakeReviewClient:
             def __init__(self) -> None:
@@ -224,12 +238,16 @@ class WebServerTests(unittest.TestCase):
             "",
         )
         self.assertEqual("候选2", content)
-        self.assertEqual(3, len(chat_client.feedback))
-        self.assertEqual("", chat_client.feedback[0])
-        self.assertIn("回复太长", chat_client.feedback[1])
+        self.assertEqual(3, len(chat_client.runtime_messages))
+        self.assertNotIn("回复太长", "\n".join(chat_client.runtime_messages[0]))
+        self.assertIn("回复太长", "\n".join(chat_client.runtime_messages[1]))
         self.assertEqual(3, review_client.review_count)
         self.assertEqual(2, debug["selected_attempt"])
         self.assertEqual(3, len(debug["candidates"]))
+
+    def test_runtime_model_text_comes_from_chinese_skill_resource(self) -> None:
+        self.assertIn("发送前审查器", RUNTIME_TEXT["review_system_prompt"])
+        self.assertIn("{candidate}", RUNTIME_TEXT["revision_feedback_template"])
 
 
 if __name__ == "__main__":
