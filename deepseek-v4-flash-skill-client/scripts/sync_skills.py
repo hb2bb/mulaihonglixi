@@ -17,7 +17,9 @@ from deepseek_skill_client import SkillLoader
 
 def main() -> None:
     project_root = site_root.parent
-    loader = SkillLoader(project_root, include_user_skills=True)
+    # 网页是这个项目的角色聊天入口，只注入项目内的 Skills。
+    # 用户目录中的通用 Skills 体积很大，也可能带来无关或冲突的行为约束。
+    loader = SkillLoader(project_root, include_user_skills=False)
     loaded_files = loader.load()
     bundle = loader.build_system_prompt()
     relative_names: list[str] = []

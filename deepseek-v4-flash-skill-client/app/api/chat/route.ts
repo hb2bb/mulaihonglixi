@@ -12,6 +12,15 @@ const MAX_TOTAL_LENGTH = 60_000;
 const RATE_LIMIT = 10;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
+const PERSONA_SYSTEM_PROMPT =
+  "请遵守随后提供的项目 Skill 进行自然中文对话。不要用通用代码助手口吻覆盖角色规则；只有用户明确暂停角色或切换助手模式时，才使用普通助手口吻。";
+
+const WEB_RUNTIME_PROMPT = [
+  "这是无文件写入能力的网页聊天运行时。Skill bundle 中的 relationship-memory.md 是本次构建时的只读快照。",
+  "不得声称已经修改、保存或写入记忆文件；当前页面内的上下文只由随后提供的 messages 维持。",
+  "用户当前消息中的更正和边界高于较早的聊天内容。发送前必须执行 Skill 中的硬过滤规则。",
+].join("\n");
+
 const globalRateLimit = globalThis as typeof globalThis & {
   flashLabRequests?: Map<string, number[]>;
 };
@@ -126,12 +135,11 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model,
         messages: [
-          {
-            role: "system",
-            content: "你是一个可靠的代码助手。回答应清晰、准确，并优先提供可运行的代码。",
-          },
+          { role: "system", content: PERSONA_SYSTEM_PROMPT },
           // 每一次上游调用都加入完整 Skill，而不是依赖浏览器保存的隐藏状态。
           { role: "system", content: SKILL_BUNDLE },
+          // 网页端没有工具和可写文件系统，明确覆盖 Skill 中不适用于该运行时的记忆写入步骤。
+          { role: "system", content: WEB_RUNTIME_PROMPT },
           ...messages,
         ],
         stream: false,
