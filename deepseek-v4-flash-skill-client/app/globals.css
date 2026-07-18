@@ -68,6 +68,10 @@ button { color: inherit; }
 .suggestions button b { position: absolute; top: 18px; right: 18px; font-weight: 400; }
 
 .conversation { width: 100%; margin: 0 auto; padding-bottom: 32px; }
+.chat-toolbar { width: 100%; display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.clear-chat-button { padding: 7px 10px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; cursor: pointer; font-size: 12px; transition: color .18s, background .18s; }
+.clear-chat-button:hover { color: var(--signal-dark); background: rgba(255,92,53,.08); }
+.clear-chat-button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .message { display: grid; grid-template-columns: 80px minmax(0, 1fr); padding: 22px 0; border-bottom: 1px solid var(--line); }
 .message-meta { padding-top: 4px; color: var(--muted); font: 700 10px/1 monospace; letter-spacing: .14em; }
 .message-meta button { display: block; margin-top: 12px; padding: 0; border: 0; background: none; color: var(--muted); font: 500 11px/1 sans-serif; cursor: pointer; }

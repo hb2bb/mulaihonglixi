@@ -143,13 +143,30 @@ export default function Home() {
     window.setTimeout(() => setCopiedId(""), 1_500);
   }
 
+  function clearConversation() {
+    // 清空时同时终止未完成的请求，防止旧回答随后重新出现在页面中。
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setMessages([]);
+    setInput("");
+    setError("");
+    setLoading(false);
+    textareaRef.current?.focus();
+  }
+
   const hasConversation = messages.length > 0;
 
   return (
     <main className="app-shell">
       <section className={`workspace ${hasConversation ? "is-chatting" : ""}`} id="top">
         {hasConversation && (
-          <div className="conversation" aria-live="polite">
+          <>
+            <div className="chat-toolbar">
+              <button className="clear-chat-button" type="button" onClick={clearConversation}>
+                清空对话
+              </button>
+            </div>
+            <div className="conversation" aria-live="polite">
             {messages.map((message) => (
               <article className={`message ${message.role}`} key={message.id}>
                 <div className="message-meta">
@@ -171,7 +188,8 @@ export default function Home() {
             )}
             {error && <div className="error-banner" role="alert">{error}</div>}
             <div ref={bottomRef} />
-          </div>
+            </div>
+          </>
         )}
 
         <form className="composer" onSubmit={submit}>
