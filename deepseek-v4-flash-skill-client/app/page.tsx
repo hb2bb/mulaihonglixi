@@ -9,12 +9,7 @@ type Message = {
 };
 
 const STORAGE_KEY = "flash-lab-conversation-v1";
-const suggestions = [
-  "用 Python 写一个带重试的异步请求函数",
-  "解释这段代码可能出现的并发问题",
-  "帮我设计一个简洁的 REST API",
-];
-
+const ACCESS_KEY_STORAGE = "flash-lab-access-key";
 function makeId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -25,21 +20,30 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState("");
+  const [accessKeyRequired, setAccessKeyRequired] = useState(false);
+  const [accessKey, setAccessKey] = useState("");
+  const [accessKeyInput, setAccessKeyInput] = useState("");
+  const [pendingContent, setPendingContent] = useState("");
   const controllerRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const accessDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setMessages(JSON.parse(saved) as Message[]);
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    // 清理旧版本的持久化记录；刷新或重新进入网站时始终从空对话开始。
+    localStorage.removeItem(STORAGE_KEY);
+    setMessages([]);
+    setAccessKey(sessionStorage.getItem(ACCESS_KEY_STORAGE) || "");
+
+    void fetch("/api/chat")
+      .then((response) => response.json())
+      .then((status: { access_key_required?: boolean }) => {
+        setAccessKeyRequired(Boolean(status.access_key_required));
+      })
+      .catch(() => setAccessKeyRequired(false));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
@@ -49,9 +53,20 @@ export default function Home() {
     textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
   }, [input]);
 
-  async function sendMessage(content: string) {
+  function requestAccessKey(content: string) {
+    setPendingContent(content);
+    setAccessKeyInput("");
+    accessDialogRef.current?.showModal();
+  }
+
+  async function sendMessage(content: string, keyOverride?: string) {
     const cleanContent = content.trim();
     if (!cleanContent || loading) return;
+    const requestAccess = keyOverride || accessKey;
+    if (accessKeyRequired && !requestAccess) {
+      requestAccessKey(cleanContent);
+      return;
+    }
 
     const userMessage: Message = { id: makeId(), role: "user", content: cleanContent };
     const nextMessages = [...messages, userMessage];
@@ -65,13 +80,23 @@ export default function Home() {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Flash-Lab-Access": requestAccess,
+        },
         body: JSON.stringify({
           messages: nextMessages.map(({ role, content: text }) => ({ role, content: text })),
         }),
         signal: controller.signal,
       });
       const data = (await response.json()) as { content?: string; error?: string };
+      if (response.status === 401) {
+        sessionStorage.removeItem(ACCESS_KEY_STORAGE);
+        setAccessKey("");
+        setMessages(messages);
+        setInput(cleanContent);
+        requestAccessKey(cleanContent);
+      }
       if (!response.ok || !data.content) throw new Error(data.error || "请求失败");
       setMessages((current) => [
         ...current,
@@ -88,6 +113,18 @@ export default function Home() {
     }
   }
 
+  function submitAccessKey(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextAccessKey = accessKeyInput.trim();
+    if (!nextAccessKey) return;
+    sessionStorage.setItem(ACCESS_KEY_STORAGE, nextAccessKey);
+    setAccessKey(nextAccessKey);
+    accessDialogRef.current?.close();
+    const content = pendingContent;
+    setPendingContent("");
+    if (content) void sendMessage(content, nextAccessKey);
+  }
+
   function submit(event: FormEvent) {
     event.preventDefault();
     void sendMessage(input);
@@ -100,14 +137,6 @@ export default function Home() {
     }
   }
 
-  function clearConversation() {
-    controllerRef.current?.abort();
-    setMessages([]);
-    setError("");
-    setLoading(false);
-    localStorage.removeItem(STORAGE_KEY);
-  }
-
   async function copyAnswer(message: Message) {
     await navigator.clipboard.writeText(message.content);
     setCopiedId(message.id);
@@ -118,47 +147,8 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="Flash Lab 首页">
-          <span className="brand-mark" aria-hidden="true">F</span>
-          <span>
-            <strong>Flash Lab</strong>
-            <small>DeepSeek V4 · Skill Enhanced</small>
-          </span>
-        </a>
-        <div className="status-cluster">
-          <span className="status"><i /> 服务在线</span>
-          {hasConversation && (
-            <button className="clear-button" type="button" onClick={clearConversation}>
-              清空对话
-            </button>
-          )}
-        </div>
-      </header>
-
       <section className={`workspace ${hasConversation ? "is-chatting" : ""}`} id="top">
-        {!hasConversation ? (
-          <div className="welcome">
-            <div className="eyebrow">CODE CONVERSATION / 04</div>
-            <h1>
-              把想法写下来，
-              <span>让 Flash 接着跑。</span>
-            </h1>
-            <p className="intro">
-              快速、专注的代码对话体验。每次提问都会携带当前项目 Skills，
-              让模型在同一套规则和上下文里工作。
-            </p>
-            <div className="suggestions" aria-label="示例问题">
-              {suggestions.map((suggestion, index) => (
-                <button key={suggestion} type="button" onClick={() => void sendMessage(suggestion)}>
-                  <span>0{index + 1}</span>
-                  {suggestion}
-                  <b aria-hidden="true">↗</b>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
+        {hasConversation && (
           <div className="conversation" aria-live="polite">
             {messages.map((message) => (
               <article className={`message ${message.role}`} key={message.id}>
@@ -213,17 +203,28 @@ export default function Home() {
               </button>
             )}
           </div>
-          <div className="composer-foot">
-            <span>Enter 发送 · Shift + Enter 换行</span>
-            <span>Skills 已由服务端装载</span>
-          </div>
         </form>
       </section>
 
-      <footer>
-        <span>DEEPSEEK V4 FLASH</span>
-        <span>回答可能有误，请核对重要信息</span>
-      </footer>
+      <dialog className="access-dialog" ref={accessDialogRef}>
+        <form onSubmit={submitAccessKey}>
+          <h2>输入体验访问码</h2>
+          <p>这个站点限制了模型调用，请向站点所有者获取访问码。</p>
+          <label className="sr-only" htmlFor="access-key">体验访问码</label>
+          <input
+            id="access-key"
+            type="password"
+            autoComplete="current-password"
+            value={accessKeyInput}
+            onChange={(event) => setAccessKeyInput(event.target.value)}
+            required
+          />
+          <div>
+            <button type="button" onClick={() => accessDialogRef.current?.close()}>取消</button>
+            <button type="submit">继续</button>
+          </div>
+        </form>
+      </dialog>
     </main>
   );
 }

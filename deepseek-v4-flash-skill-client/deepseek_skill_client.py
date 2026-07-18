@@ -14,9 +14,6 @@ from typing import Any, Iterable, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-# deepseek api
-api_key = 'sk-9d33b27ef06d453a8d3934838e95d1f2'
-
 # 匹配 Markdown 中指向本地文件的普通链接，例如 [角色卡](references/card.md)。
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
@@ -296,6 +293,7 @@ def run_interactive(client: DeepSeekSkillClient, max_tokens: int | None) -> None
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = build_argument_parser().parse_args(argv)
+    api_key = os.environ.get("DEEPSEEK_API_KEY", "")
     extra_roots = parse_extra_skill_roots(os.environ.get("EXTRA_SKILL_ROOTS", ""))
     loader = SkillLoader(
         args.project_root,
@@ -312,7 +310,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         return 0
 
     if not api_key:
-        print("错误：请先设置API_KEY。")
+        print("错误：请先设置 DEEPSEEK_API_KEY。")
         return 2
 
     client = DeepSeekSkillClient(

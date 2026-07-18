@@ -9,6 +9,44 @@ type ChatMessage = {
 const MAX_MESSAGES = 30;
 const MAX_MESSAGE_LENGTH = 12_000;
 const MAX_TOTAL_LENGTH = 60_000;
+const RATE_LIMIT = 10;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
+const globalRateLimit = globalThis as typeof globalThis & {
+  flashLabRequests?: Map<string, number[]>;
+};
+const requestRecords = (globalRateLimit.flashLabRequests ??= new Map());
+
+function clientIdentity(request: NextRequest) {
+  return (
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown"
+  );
+}
+
+function allowRequest(identity: string) {
+  const now = Date.now();
+  const recent = (requestRecords.get(identity) || []).filter(
+    (timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS,
+  );
+  if (recent.length >= RATE_LIMIT) {
+    requestRecords.set(identity, recent);
+    return false;
+  }
+  recent.push(now);
+  requestRecords.set(identity, recent);
+  return true;
+}
+
+function safeEqual(left: string, right: string) {
+  const length = Math.max(left.length, right.length);
+  let different = left.length ^ right.length;
+  for (let index = 0; index < length; index += 1) {
+    different |= (left.charCodeAt(index) || 0) ^ (right.charCodeAt(index) || 0);
+  }
+  return different === 0;
+}
 
 function validateMessages(value: unknown): ChatMessage[] | null {
   if (!Array.isArray(value) || value.length === 0 || value.length > MAX_MESSAGES) {
@@ -30,12 +68,34 @@ function validateMessages(value: unknown): ChatMessage[] | null {
   return messages;
 }
 
+export async function GET() {
+  return NextResponse.json({
+    ready: Boolean(process.env.DEEPSEEK_API_KEY),
+    access_key_required: Boolean(process.env.SITE_ACCESS_KEY),
+  });
+}
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
       { error: "服务尚未配置 DeepSeek API Key。" },
       { status: 503 },
+    );
+  }
+
+  const accessKey = process.env.SITE_ACCESS_KEY;
+  if (
+    accessKey &&
+    !safeEqual(request.headers.get("X-Flash-Lab-Access") || "", accessKey)
+  ) {
+    return NextResponse.json({ error: "体验访问码不正确。" }, { status: 401 });
+  }
+
+  if (!allowRequest(clientIdentity(request))) {
+    return NextResponse.json(
+      { error: "请求过于频繁，请稍后再试。" },
+      { status: 429, headers: { "Retry-After": "60" } },
     );
   }
 

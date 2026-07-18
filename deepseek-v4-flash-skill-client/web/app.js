@@ -1,6 +1,6 @@
 "use strict";
 
-// 对话只保存在访客自己的浏览器中，不会写入服务器磁盘。
+// 仅用于清理旧版本曾保存在浏览器里的历史记录。
 const STORAGE_KEY = "flash-lab-conversation-v1";
 const state = {
   messages: [], loading: false, controller: null, error: "", accessKeyRequired: false,
@@ -8,14 +8,10 @@ const state = {
 
 const elements = {
   workspace: document.querySelector(".workspace"),
-  welcome: document.querySelector("#welcome"),
   conversation: document.querySelector("#conversation"),
   composer: document.querySelector("#composer"),
   prompt: document.querySelector("#prompt"),
   sendButton: document.querySelector("#send-button"),
-  clearButton: document.querySelector("#clear-button"),
-  serviceStatus: document.querySelector("#service-status span"),
-  skillCount: document.querySelector("#skill-count"),
   accessDialog: document.querySelector("#access-dialog"),
   accessForm: document.querySelector("#access-form"),
   accessKey: document.querySelector("#access-key"),
@@ -24,10 +20,6 @@ const elements = {
 
 function makeId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function saveMessages() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.messages));
 }
 
 function createMessageElement(message) {
@@ -74,10 +66,8 @@ function createThinkingElement() {
 }
 
 function render() {
-  const hasConversation = state.messages.length > 0;
-  elements.welcome.hidden = hasConversation;
+  const hasConversation = state.messages.length > 0 || state.loading || Boolean(state.error);
   elements.conversation.hidden = !hasConversation;
-  elements.clearButton.hidden = !hasConversation;
   elements.workspace.classList.toggle("is-chatting", hasConversation);
   elements.conversation.replaceChildren(...state.messages.map(createMessageElement));
   if (state.loading) elements.conversation.append(createThinkingElement());
@@ -107,7 +97,6 @@ async function sendMessage(rawContent) {
   state.error = "";
   state.loading = true;
   state.controller = new AbortController();
-  saveMessages();
   resizePrompt();
   render();
 
@@ -129,7 +118,6 @@ async function sendMessage(rawContent) {
       throw new Error(data.error || "请求失败，请稍后重试。");
     }
     state.messages.push({ id: makeId(), role: "assistant", content: data.content });
-    saveMessages();
     render();
   } catch (error) {
     if (error.name !== "AbortError") {
@@ -194,7 +182,7 @@ elements.composer.addEventListener("submit", (event) => {
 
 elements.prompt.addEventListener("input", () => {
   resizePrompt();
-  elements.sendButton.disabled = state.loading || !elements.prompt.value.trim();
+  elements.sendButton.disabled = !state.loading && !elements.prompt.value.trim();
 });
 
 elements.prompt.addEventListener("keydown", (event) => {
@@ -204,37 +192,17 @@ elements.prompt.addEventListener("keydown", (event) => {
   }
 });
 
-elements.clearButton.addEventListener("click", () => {
-  state.controller?.abort();
-  state.messages = [];
-  state.loading = false;
-  state.error = "";
-  localStorage.removeItem(STORAGE_KEY);
-  render();
-});
-
-document.querySelectorAll("[data-prompt]").forEach((button) => {
-  button.addEventListener("click", () => void sendMessage(button.dataset.prompt || ""));
-});
-
 async function loadStatus() {
   try {
     const response = await fetch("/api/status");
     const status = await response.json();
     state.accessKeyRequired = Boolean(status.access_key_required);
-    elements.serviceStatus.textContent = status.ready ? "服务在线" : "等待配置 API Key";
-    elements.skillCount.textContent = `${status.skill_file_count} 个 Skill 文件已装载`;
   } catch {
-    elements.serviceStatus.textContent = "服务状态未知";
-    elements.skillCount.textContent = "Skills 读取失败";
+    state.accessKeyRequired = false;
   }
 }
 
-try {
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  if (Array.isArray(saved)) state.messages = saved;
-} catch {
-  localStorage.removeItem(STORAGE_KEY);
-}
+// 每次加载网站都清空旧历史；本次对话只存在于当前页面的内存中。
+localStorage.removeItem(STORAGE_KEY);
 render();
 void loadStatus();

@@ -10,41 +10,7 @@
   </head>
   <body>
     <main class="app-shell">
-      <header class="topbar">
-        <a class="brand" href="#top" aria-label="Flash Lab 首页">
-          <span class="brand-mark" aria-hidden="true">F</span>
-          <span>
-            <strong>Flash Lab</strong>
-            <small>DeepSeek V4 · Skill Enhanced</small>
-          </span>
-        </a>
-        <div class="status-cluster">
-          <span class="status" id="service-status"><i></i><span>正在检查服务</span></span>
-          <button class="clear-button" id="clear-button" type="button" hidden>清空对话</button>
-        </div>
-      </header>
-
       <section class="workspace" id="top">
-        <div class="welcome" id="welcome">
-          <div class="eyebrow">CODE CONVERSATION / 04</div>
-          <h1>把想法写下来，<br /><span>让 Flash 接着跑。</span></h1>
-          <p class="intro">
-            快速、专注的代码对话体验。每次提问都会携带当前项目 Skills，
-            让模型在同一套规则和上下文里工作。
-          </p>
-          <div class="suggestions" aria-label="示例问题">
-            <button type="button" data-prompt="用 Python 写一个带重试的异步请求函数">
-              <span>01</span>用 Python 写一个带重试的异步请求函数<b aria-hidden="true">↗</b>
-            </button>
-            <button type="button" data-prompt="解释一段代码可能出现的并发问题">
-              <span>02</span>解释一段代码可能出现的并发问题<b aria-hidden="true">↗</b>
-            </button>
-            <button type="button" data-prompt="帮我设计一个简洁的 REST API">
-              <span>03</span>帮我设计一个简洁的 REST API<b aria-hidden="true">↗</b>
-            </button>
-          </div>
-        </div>
-
         <div class="conversation" id="conversation" aria-live="polite" hidden></div>
 
         <form class="composer" id="composer">
@@ -52,23 +18,14 @@
             <label class="sr-only" for="prompt">输入问题</label>
             <textarea
               id="prompt"
-              placeholder="描述你的问题、贴一段代码，或者说说你想做什么……"
+              placeholder="给 DeepSeek V4 Flash 发消息……"
               rows="1"
               maxlength="12000"
             ></textarea>
             <button class="send-button" id="send-button" type="submit" aria-label="发送" disabled>↑</button>
           </div>
-          <div class="composer-foot">
-            <span>Enter 发送 · Shift + Enter 换行</span>
-            <span id="skill-count">正在读取 Skills</span>
-          </div>
         </form>
       </section>
-
-      <footer>
-        <span>DEEPSEEK V4 FLASH</span>
-        <span>回答可能有误，请核对重要信息</span>
-      </footer>
     </main>
 
     <dialog class="access-dialog" id="access-dialog">
