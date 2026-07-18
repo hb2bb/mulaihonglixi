@@ -12,8 +12,19 @@
     <main class="app-shell">
       <section class="workspace" id="top">
         <div class="chat-toolbar" id="chat-toolbar" hidden>
+          <button class="clear-chat-button" id="debug-toggle-button" type="button">展开 Debug</button>
           <button class="clear-chat-button" id="clear-chat-button" type="button">清空对话</button>
         </div>
+        <aside class="debug-panel" id="debug-panel" hidden>
+          <div class="debug-grid">
+            <section><h2>当前会话记忆</h2><pre id="debug-memory">尚未生成记忆</pre></section>
+            <section><h2>当前实时状态</h2><pre id="debug-state">尚未生成状态</pre></section>
+          </div>
+          <section class="debug-trace">
+            <h2>模型输出轨迹</h2>
+            <div id="debug-trace"><p>尚无模型输出</p></div>
+          </section>
+        </aside>
         <div class="conversation" id="conversation" aria-live="polite" hidden></div>
 
         <form class="composer" id="composer">
