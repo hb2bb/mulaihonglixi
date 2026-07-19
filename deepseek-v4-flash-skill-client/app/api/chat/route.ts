@@ -1,25 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SKILL_BUNDLE } from "@/lib/skill-bundle.generated";
+import { RUNTIME_TEXT, SKILL_BUNDLE } from "@/lib/skill-bundle.generated";
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
 
-const MAX_MESSAGES = 30;
+const MAX_MESSAGES = 200;
 const MAX_MESSAGE_LENGTH = 12_000;
 const MAX_TOTAL_LENGTH = 60_000;
+const MAX_SESSION_MEMORY_LENGTH = 4_000;
+const MAX_LIVE_STATE_LENGTH = 3_000;
 const RATE_LIMIT = 10;
 const RATE_LIMIT_WINDOW_MS = 60_000;
+const MAX_REVIEW_RETRIES = 2;
 
-const PERSONA_SYSTEM_PROMPT =
-  "请遵守随后提供的项目 Skill 进行自然中文对话。不要用通用代码助手口吻覆盖角色规则；只有用户明确暂停角色或切换助手模式时，才使用普通助手口吻。";
+type ReviewResult = {
+  approved: boolean;
+  problems: string;
+  raw: string;
+};
 
-const WEB_RUNTIME_PROMPT = [
-  "这是无文件写入能力的网页聊天运行时。Skill bundle 中的 relationship-memory.md 是本次构建时的只读快照。",
-  "不得声称已经修改、保存或写入记忆文件；当前页面内的上下文只由随后提供的 messages 维持。",
-  "用户当前消息中的更正和边界高于较早的聊天内容。发送前必须执行 Skill 中的硬过滤规则。",
-].join("\n");
+function renderRuntimeText(template: string, values: Record<string, string>) {
+  return Object.entries(values).reduce(
+    (rendered, [key, value]) => rendered.split(`{${key}}`).join(value),
+    template,
+  );
+}
 
 const globalRateLimit = globalThis as typeof globalThis & {
   flashLabRequests?: Map<string, number[]>;
@@ -77,9 +84,143 @@ function validateMessages(value: unknown): ChatMessage[] | null {
   return messages;
 }
 
+function validateSessionMemory(value: unknown): string | null {
+  if (value === undefined || value === "") return "";
+  if (typeof value !== "string" || value.length > MAX_SESSION_MEMORY_LENGTH) return null;
+  return value.trim();
+}
+
+function validateLiveState(value: unknown): string | null {
+  if (value === undefined || value === "") return "";
+  if (typeof value !== "string" || value.length > MAX_LIVE_STATE_LENGTH) return null;
+  return value.trim();
+}
+
+function extractJsonObject(content: string): Record<string, unknown> | null {
+  const start = content.indexOf("{");
+  const end = content.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    const value = JSON.parse(content.slice(start, end + 1));
+    return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function callCompatibleModel(
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+  maxTokens: number,
+) {
+  const upstream = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model, messages, stream: false, max_tokens: maxTokens }),
+  });
+  if (!upstream.ok) {
+    console.error("Reply review upstream error", upstream.status, await upstream.text());
+    throw new Error(`review upstream HTTP ${upstream.status}`);
+  }
+  const result = (await upstream.json()) as {
+    choices?: Array<{ message?: { content?: unknown } }>;
+  };
+  const content = result.choices?.[0]?.message?.content;
+  if (typeof content !== "string" || !content.trim()) {
+    throw new Error("review model returned no text");
+  }
+  return content;
+}
+
+async function reviewCandidate(
+  config: { baseUrl: string; apiKey: string; model: string },
+  messages: ChatMessage[],
+  sessionMemory: string,
+  liveState: string,
+  candidate: string,
+): Promise<ReviewResult> {
+  const content = await callCompatibleModel(
+    config.baseUrl,
+    config.apiKey,
+    config.model,
+    [
+      { role: "system", content: RUNTIME_TEXT.review_system_prompt },
+      { role: "system", content: SKILL_BUNDLE },
+      {
+        role: "user",
+        content: JSON.stringify({
+          conversation: messages,
+          session_memory: sessionMemory,
+          live_state: liveState,
+          candidate,
+        }),
+      },
+    ],
+    700,
+  );
+  const parsed = extractJsonObject(content);
+  if (!parsed || typeof parsed.approved !== "boolean" || typeof parsed.problems !== "string") {
+    throw new Error("review model returned invalid JSON");
+  }
+  return {
+    approved: parsed.approved,
+    problems: parsed.problems.trim().slice(0, 500),
+    raw: content,
+  };
+}
+
+async function selectCandidate(
+  config: { baseUrl: string; apiKey: string; model: string },
+  messages: ChatMessage[],
+  sessionMemory: string,
+  liveState: string,
+  candidates: string[],
+  reviews: ReviewResult[],
+): Promise<{ content: string; selected: number; raw: string }> {
+  const content = await callCompatibleModel(
+    config.baseUrl,
+    config.apiKey,
+    config.model,
+    [
+      { role: "system", content: RUNTIME_TEXT.select_system_prompt },
+      { role: "system", content: SKILL_BUNDLE },
+      {
+        role: "user",
+        content: JSON.stringify({
+          conversation: messages,
+          session_memory: sessionMemory,
+          live_state: liveState,
+          candidates: candidates.map((candidate, index) => ({
+            number: index + 1,
+            content: candidate,
+            review: reviews[index],
+          })),
+        }),
+      },
+    ],
+    300,
+  );
+  const selected = extractJsonObject(content)?.selected;
+  if (typeof selected !== "number" || !Number.isInteger(selected) || !candidates[selected - 1]) {
+    throw new Error("review model returned invalid selection");
+  }
+  return { content: candidates[selected - 1], selected, raw: content };
+}
+
 export async function GET() {
   return NextResponse.json({
     ready: Boolean(process.env.DEEPSEEK_API_KEY),
+    state_ready: Boolean(
+      process.env.STATE_API_KEY && process.env.STATE_BASE_URL && process.env.STATE_MODEL,
+    ),
+    review_ready: Boolean(
+      process.env.REVIEW_API_KEY && process.env.REVIEW_BASE_URL && process.env.REVIEW_MODEL,
+    ),
     access_key_required: Boolean(process.env.SITE_ACCESS_KEY),
   });
 }
@@ -89,6 +230,15 @@ export async function POST(request: NextRequest) {
   if (!apiKey) {
     return NextResponse.json(
       { error: "服务尚未配置 DeepSeek API Key。" },
+      { status: 503 },
+    );
+  }
+  const reviewApiKey = process.env.REVIEW_API_KEY;
+  const reviewBaseUrl = (process.env.REVIEW_BASE_URL || "").replace(/\/$/, "");
+  const reviewModel = process.env.REVIEW_MODEL || "";
+  if (!reviewApiKey || !reviewBaseUrl || !reviewModel) {
+    return NextResponse.json(
+      { error: "回复审查模型的 API Key、Base URL 或模型名尚未配置。" },
       { status: 503 },
     );
   }
@@ -114,8 +264,11 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "请求不是有效的 JSON。" }, { status: 400 });
   }
-  const messages = validateMessages((body as { messages?: unknown })?.messages);
-  if (!messages) {
+  const requestBody = body as { messages?: unknown; memory?: unknown; liveState?: unknown };
+  const messages = validateMessages(requestBody?.messages);
+  const sessionMemory = validateSessionMemory(requestBody?.memory);
+  const liveState = validateLiveState(requestBody?.liveState);
+  if (!messages || sessionMemory === null || liveState === null) {
     return NextResponse.json({ error: "对话内容为空、过长或格式不正确。" }, { status: 400 });
   }
 
@@ -125,7 +278,34 @@ export async function POST(request: NextRequest) {
   );
   const model = process.env.DEEPSEEK_MODEL || "deepseek-v4-pro";
 
-  try {
+  const generationMessages = [
+    { role: "system" as const, content: RUNTIME_TEXT.persona_system_prompt },
+    { role: "system" as const, content: SKILL_BUNDLE },
+    { role: "system" as const, content: RUNTIME_TEXT.web_runtime_prompt },
+    ...(sessionMemory
+      ? [
+          {
+            role: "system" as const,
+            content: renderRuntimeText(RUNTIME_TEXT.session_memory_prompt_template, {
+              memory: sessionMemory,
+            }),
+          },
+        ]
+      : []),
+    ...(liveState
+      ? [
+          {
+            role: "system" as const,
+            content: renderRuntimeText(RUNTIME_TEXT.live_state_prompt_template, {
+              live_state: liveState,
+            }),
+          },
+        ]
+      : []),
+    ...messages,
+  ];
+
+  async function generateCandidate(revision?: { candidate: string; problems: string }) {
     const upstream = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -135,12 +315,18 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model,
         messages: [
-          { role: "system", content: PERSONA_SYSTEM_PROMPT },
-          // 每一次上游调用都加入完整 Skill，而不是依赖浏览器保存的隐藏状态。
-          { role: "system", content: SKILL_BUNDLE },
-          // 网页端没有工具和可写文件系统，明确覆盖 Skill 中不适用于该运行时的记忆写入步骤。
-          { role: "system", content: WEB_RUNTIME_PROMPT },
-          ...messages,
+          ...generationMessages,
+          ...(revision
+            ? [
+                {
+                  role: "system" as const,
+                  content: renderRuntimeText(RUNTIME_TEXT.revision_feedback_template, {
+                    candidate: revision.candidate,
+                    problems: revision.problems,
+                  }),
+                },
+              ]
+            : []),
         ],
         stream: false,
         thinking: { type: "enabled" },
@@ -152,10 +338,7 @@ export async function POST(request: NextRequest) {
     if (!upstream.ok) {
       // 不把上游响应体返回给访客，避免意外泄露服务端信息。
       console.error("DeepSeek upstream error", upstream.status, await upstream.text());
-      return NextResponse.json(
-        { error: `模型服务暂时不可用（${upstream.status}）。` },
-        { status: 502 },
-      );
+      throw new Error(`generation upstream HTTP ${upstream.status}`);
     }
 
     const result = (await upstream.json()) as {
@@ -163,11 +346,70 @@ export async function POST(request: NextRequest) {
     };
     const content = result.choices?.[0]?.message?.content;
     if (typeof content !== "string") {
-      return NextResponse.json({ error: "模型没有返回有效文本。" }, { status: 502 });
+      throw new Error("generation model returned no text");
     }
-    return NextResponse.json({ content });
+    return content;
+  }
+
+  try {
+    const reviewConfig = { baseUrl: reviewBaseUrl, apiKey: reviewApiKey, model: reviewModel };
+    const candidates: string[] = [];
+    const reviews: ReviewResult[] = [];
+    let revision: { candidate: string; problems: string } | undefined;
+    for (let attempt = 0; attempt <= MAX_REVIEW_RETRIES; attempt += 1) {
+      const candidate = await generateCandidate(revision);
+      const review = await reviewCandidate(
+        reviewConfig,
+        messages,
+        sessionMemory,
+        liveState,
+        candidate,
+      );
+      candidates.push(candidate);
+      reviews.push(review);
+      if (review.approved) {
+        return NextResponse.json({
+          content: candidate,
+          debug: {
+            models: { chat: model, review: reviewModel },
+            candidates: candidates.map((output, index) => ({
+              attempt: index + 1,
+              output,
+              review: reviews[index],
+            })),
+            selected_attempt: attempt + 1,
+            selector_output: "",
+          },
+        });
+      }
+      revision = {
+        candidate,
+        problems: review.problems || RUNTIME_TEXT.default_review_problem,
+      };
+    }
+    const selection = await selectCandidate(
+      reviewConfig,
+      messages,
+      sessionMemory,
+      liveState,
+      candidates,
+      reviews,
+    );
+    return NextResponse.json({
+      content: selection.content,
+      debug: {
+        models: { chat: model, review: reviewModel },
+        candidates: candidates.map((output, index) => ({
+          attempt: index + 1,
+          output,
+          review: reviews[index],
+        })),
+        selected_attempt: selection.selected,
+        selector_output: selection.raw,
+      },
+    });
   } catch (error) {
-    console.error("DeepSeek request failed", error);
-    return NextResponse.json({ error: "连接模型服务失败，请稍后重试。" }, { status: 502 });
+    console.error("Reviewed chat request failed", error);
+    return NextResponse.json({ error: "回复生成或发送前审查失败，请稍后重试。" }, { status: 502 });
   }
 }

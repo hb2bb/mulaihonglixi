@@ -72,6 +72,16 @@ button { color: inherit; }
 .clear-chat-button { padding: 7px 10px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; cursor: pointer; font-size: 12px; transition: color .18s, background .18s; }
 .clear-chat-button:hover { color: var(--signal-dark); background: rgba(255,92,53,.08); }
 .clear-chat-button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.debug-panel { margin: 8px 0 24px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #eeece5; }
+.debug-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.debug-panel section { min-width: 0; }
+.debug-panel h2 { margin: 0 0 8px; color: var(--muted); font: 700 10px/1.3 monospace; letter-spacing: .1em; text-transform: uppercase; }
+.debug-panel pre { margin: 0; padding: 12px; overflow: auto; border-radius: 8px; background: #181817; color: #f6f3e9; font: 11px/1.65 ui-monospace, "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.debug-trace { margin-top: 16px; }
+.debug-trace > p { margin: 0; color: var(--muted); font-size: 12px; }
+.debug-trace details { border-top: 1px solid var(--line); padding: 9px 0; }
+.debug-trace summary { cursor: pointer; color: var(--ink); font: 600 11px/1.4 ui-monospace, monospace; }
+.debug-trace details pre { margin-top: 9px; }
 .message { display: grid; grid-template-columns: 80px minmax(0, 1fr); padding: 22px 0; border-bottom: 1px solid var(--line); }
 .message-meta { padding-top: 4px; color: var(--muted); font: 700 10px/1 monospace; letter-spacing: .14em; }
 .message-meta button { display: block; margin-top: 12px; padding: 0; border: 0; background: none; color: var(--muted); font: 500 11px/1 sans-serif; cursor: pointer; }
@@ -124,6 +134,7 @@ footer { height: 56px; display: flex; align-items: center; justify-content: spac
   .suggestions button:last-child { border-bottom: 0; }
   .suggestions button > span { display: inline; margin: 0 12px 0 0; }
   .message { grid-template-columns: 1fr; gap: 10px; padding: 20px 0; }
+  .debug-grid { grid-template-columns: 1fr; }
   .message-meta { display: flex; justify-content: space-between; }
   .message-meta button { margin: 0; }
   .composer { bottom: 14px; }

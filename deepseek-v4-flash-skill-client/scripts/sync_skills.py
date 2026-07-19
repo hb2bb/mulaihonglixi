@@ -14,14 +14,43 @@ sys.path.insert(0, str(site_root))
 # 复用命令行客户端的加载器，确保网站版和 Python 版遵守同一套扫描规则。
 from deepseek_skill_client import SkillLoader
 
+RUNTIME_TEXT_KEYS = {
+    "persona_system_prompt",
+    "web_runtime_prompt",
+    "session_memory_prompt_template",
+    "live_state_prompt_template",
+    "revision_feedback_template",
+    "default_review_problem",
+    "memory_system_prompt",
+    "mood_system_prompt",
+    "review_system_prompt",
+    "select_system_prompt",
+}
+
 
 def main() -> None:
     project_root = site_root.parent
     # 网页是这个项目的角色聊天入口，只注入项目内的 Skills。
     # 用户目录中的通用 Skills 体积很大，也可能带来无关或冲突的行为约束。
-    loader = SkillLoader(project_root, include_user_skills=False)
+    loader = SkillLoader(
+        project_root,
+        include_user_skills=False,
+        excluded_skill_names=("cangzhou-chat-web-maintainer",),
+    )
     loaded_files = loader.load()
     bundle = loader.build_system_prompt()
+    runtime_text_path = (
+        project_root / "skills" / "cangzhou-chat-runtime" / "references" / "runtime-text.json"
+    )
+    runtime_text = json.loads(runtime_text_path.read_text(encoding="utf-8"))
+    if not isinstance(runtime_text, dict):
+        raise SystemExit("runtime-text.json 必须是 JSON 对象。")
+    missing_keys = sorted(RUNTIME_TEXT_KEYS - runtime_text.keys())
+    invalid_keys = sorted(key for key, value in runtime_text.items() if not isinstance(value, str))
+    if missing_keys or invalid_keys:
+        raise SystemExit(
+            f"运行时文本不完整：缺少 {missing_keys or '无'}；非字符串 {invalid_keys or '无'}"
+        )
     relative_names: list[str] = []
     for loaded_file in loaded_files:
         try:
@@ -34,6 +63,7 @@ def main() -> None:
     output = (
         "// 此文件由 scripts/sync_skills.py 自动生成，请勿手动修改。\n"
         f"export const SKILL_BUNDLE = {json.dumps(bundle, ensure_ascii=False)};\n"
+        f"export const RUNTIME_TEXT = {json.dumps(runtime_text, ensure_ascii=False)} as const;\n"
         f"export const SKILL_FILES = {json.dumps(relative_names, ensure_ascii=False)} as const;\n"
         f"export const SKILL_FILE_COUNT = {len(relative_names)};\n"
     )

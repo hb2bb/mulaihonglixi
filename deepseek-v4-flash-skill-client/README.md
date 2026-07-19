@@ -2,6 +2,27 @@
 
 项目现在包含 Python 命令行客户端和网页体验台。两者都会把现有 Skills 作为 `system` 消息加入模型输入；API Key 仅由服务端读取，不会发送到浏览器。
 
+网页端还维护两份仅在当前页面有效的临时状态：
+
+- 每累计 10 条用户或助手消息，调用独立的 DeepSeek V4 记忆接口，只合并稳定事实、偏好、边界、约定和关系里程碑等关键节点。
+- 打开页面时立即获取一次北京时间和北京天气，此后每 30 分钟刷新；每次 10 条消息检查后也会结合最近对话和原有状态重新生成虚构角色心情。
+- 聊天模型生成候选后，独立审查模型根据完整聊天上下文与 Skill 判断是否放行。拒绝时只把问题摘要交给原聊天模型重新生成，最多重试 2 次；三份候选仍未通过时，由审查模型只选择其中最合适的一份，不负责改写。
+- 刷新、重新进入网站或点击“清空对话”都会清空会话记忆；这些状态不会写入项目里的 `relationship-memory.md`。
+
+天气数据来自 Open-Meteo。可通过 `.env` 中的 `LIVE_STATE_CITY`、`LIVE_STATE_LATITUDE`、`LIVE_STATE_LONGITUDE` 和 `LIVE_STATE_TIMEZONE` 修改地点。
+
+实时心情使用独立的 OpenAI 兼容模型接口，通过 `STATE_API_KEY`、`STATE_BASE_URL` 和 `STATE_MODEL` 配置，不复用聊天与记忆整理所使用的 DeepSeek V4 接口。状态模型请求只发送标准的 `model`、`messages`、`stream` 和 `max_tokens` 字段。
+
+回复审查使用第三套独立的 OpenAI 兼容接口，通过 `REVIEW_API_KEY`、`REVIEW_BASE_URL` 和 `REVIEW_MODEL` 配置。审查模型的结果不会修改第一份聊天候选，也不会直接生成发给用户的话；它只负责放行、总结问题和在最终候选中选择编号。
+
+页面中的 `Debug` 面板会显示当前会话记忆、实时状态，以及聊天、记忆、状态、审查和最终选择模型的逐次原始输出。面板不显示 API Key、系统提示词或完整请求体；所有 Debug 数据只保存在当前页面内存中，刷新或清空对话后消失。
+
+## 运行规则的维护位置
+
+聊天、记忆、状态、审查、重试和最终选择模型所读取的自然语言提示，统一保存在 `skills/cangzhou-chat-runtime/references/runtime-text.json`。修改中文规则后运行 `npm run sync-skills`，即可更新可部署网页使用的 TypeScript 常量；Python 网页服务直接读取同一文件。
+
+项目维护约束位于 `skills/cangzhou-chat-web-maintainer/SKILL.md`。后续不得在 TypeScript、JavaScript 或 Python 业务代码中硬编码给模型阅读的自然语言规则；界面标签、错误提示、日志和测试夹具不属于模型提示，可以留在代码中。维护 Skill 不会被注入角色聊天运行时。
+
 ## 网页体验台
 
 最简单的运行方式不需要安装任何依赖：

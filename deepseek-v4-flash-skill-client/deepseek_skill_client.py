@@ -38,10 +38,12 @@ class SkillLoader:
         project_root: Path,
         include_user_skills: bool = True,
         extra_roots: Sequence[Path] = (),
+        excluded_skill_names: Sequence[str] = (),
     ) -> None:
         self.project_root = project_root.expanduser().resolve()
         self.include_user_skills = include_user_skills
         self.extra_roots = tuple(path.expanduser().resolve() for path in extra_roots)
+        self.excluded_skill_names = frozenset(excluded_skill_names)
 
     def skill_roots(self) -> list[Path]:
         """返回可能存放 Skill 的目录；不存在的目录会在扫描时自动忽略。"""
@@ -71,7 +73,11 @@ class SkillLoader:
         found: set[Path] = set()
         for root in self.skill_roots():
             if root.is_dir():
-                found.update(path.resolve() for path in root.rglob("SKILL.md") if path.is_file())
+                found.update(
+                    path.resolve()
+                    for path in root.rglob("SKILL.md")
+                    if path.is_file() and path.parent.name not in self.excluded_skill_names
+                )
         return sorted(found, key=str)
 
     def load(self) -> list[LoadedFile]:
@@ -118,10 +124,7 @@ class SkillLoader:
         if not files:
             return "当前没有发现可用的 Skill。"
 
-        sections = [
-            "以下是本次请求可用的 Skills。请遵守其中与用户任务相关的指令；"
-            "若指令冲突，优先遵守更高优先级的系统和开发者指令。"
-        ]
+        sections: list[str] = []
         for loaded_file in files:
             try:
                 display_path = loaded_file.path.relative_to(self.project_root)
@@ -148,6 +151,7 @@ class DeepSeekSkillClient:
         timeout: float = 120.0,
         thinking: bool = True,
         reasoning_effort: str = "high",
+        include_reasoning_options: bool = True,
     ) -> None:
         if not api_key:
             raise ValueError("api_key 不能为空")
@@ -161,14 +165,16 @@ class DeepSeekSkillClient:
         self.timeout = timeout
         self.thinking = thinking
         self.reasoning_effort = reasoning_effort
+        self.include_reasoning_options = include_reasoning_options
 
     def chat(
         self,
         messages: Sequence[dict[str, str]],
         *,
-        system_prompt: str = "你是一个可靠的代码助手。",
+        system_prompt: str = "",
         max_tokens: int | None = None,
         temperature: float | None = None,
+        additional_system_messages: Sequence[str] = (),
     ) -> str:
         """发送一次对话请求，并返回助手文本。
 
@@ -179,18 +185,41 @@ class DeepSeekSkillClient:
             raise ValueError("messages 不能为空")
 
         skill_prompt = self.skill_loader.build_system_prompt()
-        request_messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "system", "content": skill_prompt},
-            *messages,
-        ]
+        request_messages: list[dict[str, str]] = []
+        if system_prompt:
+            request_messages.append({"role": "system", "content": system_prompt})
+        request_messages.append({"role": "system", "content": skill_prompt})
+        request_messages.extend(
+            {"role": "system", "content": content}
+            for content in additional_system_messages
+            if content
+        )
+        request_messages.extend(messages)
+        return self.complete(
+            request_messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+
+    def complete(
+        self,
+        messages: Sequence[dict[str, str]],
+        *,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+    ) -> str:
+        """调用模型但不自动注入 Skills，供记忆和状态整理等内部任务使用。"""
+        if not messages:
+            raise ValueError("messages 不能为空")
+
         payload: dict[str, Any] = {
             "model": self.model,
-            "messages": request_messages,
+            "messages": list(messages),
             "stream": False,
-            "thinking": {"type": "enabled" if self.thinking else "disabled"},
-            "reasoning_effort": self.reasoning_effort,
         }
+        if self.include_reasoning_options:
+            payload["thinking"] = {"type": "enabled" if self.thinking else "disabled"}
+            payload["reasoning_effort"] = self.reasoning_effort
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
         if temperature is not None:
