@@ -48,6 +48,10 @@ RUNTIME_TEXT_KEYS = {
     "mood_system_prompt",
     "review_system_prompt",
     "select_system_prompt",
+    "default_mood",
+    "default_mood_reason",
+    "default_mood_behavior",
+    "default_mood_debug_output",
 }
 
 
@@ -70,6 +74,14 @@ RUNTIME_TEXT = load_runtime_text()
 
 def render_runtime_text(key: str, **values: str) -> str:
     return RUNTIME_TEXT[key].format(**values)
+
+
+def env_flag(name: str, default: bool = False) -> bool:
+    """读取布尔环境变量，只有常见真值才视为开启。"""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def load_dotenv(path: Path) -> None:
@@ -322,6 +334,30 @@ def generate_reviewed_reply(
     }
 
 
+def generate_reply(
+    chat_client: DeepSeekSkillClient,
+    messages: list[dict[str, str]],
+    memory: str,
+    live_state: str,
+) -> str:
+    """只调用一次聊天模型，不执行审查、重试或候选选择。"""
+    additional_system_messages = [RUNTIME_TEXT["web_runtime_prompt"]]
+    if memory:
+        additional_system_messages.append(
+            render_runtime_text("session_memory_prompt_template", memory=memory)
+        )
+    if live_state:
+        additional_system_messages.append(
+            render_runtime_text("live_state_prompt_template", live_state=live_state)
+        )
+    return chat_client.chat(
+        messages,
+        system_prompt=RUNTIME_TEXT["persona_system_prompt"],
+        max_tokens=8_192,
+        additional_system_messages=additional_system_messages,
+    )
+
+
 def weather_label(code: int | None) -> str:
     if code == 0:
         return "晴"
@@ -391,12 +427,12 @@ def build_live_state_with_debug(
     local_time = now.strftime("%Y-%m-%d %A %H:%M")
     city, weather = load_weather()
     mood = {
-        "mood": "平静",
+        "mood": RUNTIME_TEXT["default_mood"],
         "intensity": 2,
-        "reason": "没有足够信息改变状态",
-        "behavior": "正常简短地聊天，偶尔轻损一句",
+        "reason": RUNTIME_TEXT["default_mood_reason"],
+        "behavior": RUNTIME_TEXT["default_mood_behavior"],
     }
-    model_output = "状态模型未返回有效输出，使用默认心情。"
+    model_output = RUNTIME_TEXT["default_mood_debug_output"]
     try:
         content = client.complete(
             [
@@ -482,7 +518,7 @@ class FlashLabServer(ThreadingHTTPServer):
         self.skill_loader = SkillLoader(
             PROJECT_ROOT,
             include_user_skills=include_user_skills,
-            excluded_skill_names=("cangzhou-chat-web-maintainer",),
+            included_skill_names=("love69-mafuyu-companion",),
         )
         self.api_key = os.environ.get("DEEPSEEK_API_KEY", "")
         self.state_api_key = os.environ.get("STATE_API_KEY", "")
@@ -542,6 +578,7 @@ class FlashLabHandler(BaseHTTPRequestHandler):
                     "model": os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro"),
                     "state_ready": bool(self.server.state_api_key),
                     "review_ready": bool(self.server.review_api_key),
+                    "review_enabled": env_flag("ENABLE_REPLY_REVIEW"),
                     "skill_file_count": len(self.server.skill_loader.load()),
                     "access_key_required": bool(self.server.access_key),
                 }
@@ -608,7 +645,8 @@ class FlashLabHandler(BaseHTTPRequestHandler):
             return
 
         if clean_path == "/api/chat":
-            if (
+            review_enabled = env_flag("ENABLE_REPLY_REVIEW")
+            if review_enabled and (
                 not self.server.review_api_key
                 or not os.environ.get("REVIEW_BASE_URL")
                 or not os.environ.get("REVIEW_MODEL")
@@ -625,27 +663,38 @@ class FlashLabHandler(BaseHTTPRequestHandler):
                 self.send_json({"error": "对话内容为空、过长或格式不正确。"}, HTTPStatus.BAD_REQUEST)
                 return
             try:
-                content, debug = generate_reviewed_reply(
-                    self.server.create_client(),
-                    self.server.create_client(
-                        "REVIEW_MODEL",
-                        "REVIEW_API_KEY",
-                        "REVIEW_BASE_URL",
-                        include_reasoning_options=False,
-                    ),
-                    self.server.skill_loader.build_system_prompt(),
-                    messages,
-                    memory,
-                    live_state,
-                )
+                if review_enabled:
+                    content, debug = generate_reviewed_reply(
+                        self.server.create_client(),
+                        self.server.create_client(
+                            "REVIEW_MODEL",
+                            "REVIEW_API_KEY",
+                            "REVIEW_BASE_URL",
+                            include_reasoning_options=False,
+                        ),
+                        self.server.skill_loader.build_system_prompt(),
+                        messages,
+                        memory,
+                        live_state,
+                    )
+                else:
+                    content = generate_reply(
+                        self.server.create_client(), messages, memory, live_state
+                    )
+                    debug = {
+                        "candidates": [{"attempt": 1, "output": content}],
+                        "selected_attempt": 1,
+                        "selector_output": "",
+                    }
             except DeepSeekError as exc:
                 print(f"DeepSeek 调用失败：{exc}")
                 self.send_json({"error": "模型服务暂时不可用，请稍后重试。"}, HTTPStatus.BAD_GATEWAY)
                 return
             debug["models"] = {
                 "chat": os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro"),
-                "review": os.environ.get("REVIEW_MODEL", ""),
+                "review": os.environ.get("REVIEW_MODEL", "") if review_enabled else "",
             }
+            debug["review_enabled"] = review_enabled
             self.send_json({"content": content, "debug": debug})
             return
 

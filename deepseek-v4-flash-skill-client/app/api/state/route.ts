@@ -208,12 +208,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "状态模型的 Base URL 或模型名尚未配置。" }, { status: 503 });
   }
   let mood: MoodResult = {
-    mood: "平静",
+    mood: RUNTIME_TEXT.default_mood,
     intensity: 2,
-    reason: "没有足够信息改变状态",
-    behavior: "正常简短地聊天，偶尔轻损一句",
+    reason: RUNTIME_TEXT.default_mood_reason,
+    behavior: RUNTIME_TEXT.default_mood_behavior,
   };
-  let modelOutput = "状态模型未返回有效输出，使用默认心情。";
+  let modelOutput = RUNTIME_TEXT.default_mood_debug_output;
 
   try {
     const upstream = await fetch(`${baseUrl}/chat/completions`, {

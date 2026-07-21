@@ -39,11 +39,15 @@ class SkillLoader:
         include_user_skills: bool = True,
         extra_roots: Sequence[Path] = (),
         excluded_skill_names: Sequence[str] = (),
+        included_skill_names: Sequence[str] | None = None,
     ) -> None:
         self.project_root = project_root.expanduser().resolve()
         self.include_user_skills = include_user_skills
         self.extra_roots = tuple(path.expanduser().resolve() for path in extra_roots)
         self.excluded_skill_names = frozenset(excluded_skill_names)
+        self.included_skill_names = (
+            None if included_skill_names is None else frozenset(included_skill_names)
+        )
 
     def skill_roots(self) -> list[Path]:
         """返回可能存放 Skill 的目录；不存在的目录会在扫描时自动忽略。"""
@@ -76,7 +80,12 @@ class SkillLoader:
                 found.update(
                     path.resolve()
                     for path in root.rglob("SKILL.md")
-                    if path.is_file() and path.parent.name not in self.excluded_skill_names
+                    if path.is_file()
+                    and path.parent.name not in self.excluded_skill_names
+                    and (
+                        self.included_skill_names is None
+                        or path.parent.name in self.included_skill_names
+                    )
                 )
         return sorted(found, key=str)
 

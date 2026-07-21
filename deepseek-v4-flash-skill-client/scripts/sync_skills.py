@@ -25,6 +25,10 @@ RUNTIME_TEXT_KEYS = {
     "mood_system_prompt",
     "review_system_prompt",
     "select_system_prompt",
+    "default_mood",
+    "default_mood_reason",
+    "default_mood_behavior",
+    "default_mood_debug_output",
 }
 
 
@@ -35,7 +39,7 @@ def main() -> None:
     loader = SkillLoader(
         project_root,
         include_user_skills=False,
-        excluded_skill_names=("cangzhou-chat-web-maintainer",),
+        included_skill_names=("love69-mafuyu-companion",),
     )
     loaded_files = loader.load()
     bundle = loader.build_system_prompt()

@@ -33,6 +33,11 @@ const globalRateLimit = globalThis as typeof globalThis & {
 };
 const requestRecords = (globalRateLimit.flashLabRequests ??= new Map());
 
+function envFlag(value: string | undefined, defaultValue = false) {
+  if (value === undefined) return defaultValue;
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+}
+
 function clientIdentity(request: NextRequest) {
   return (
     request.headers.get("cf-connecting-ip") ||
@@ -213,12 +218,14 @@ async function selectCandidate(
 }
 
 export async function GET() {
+  const reviewEnabled = envFlag(process.env.ENABLE_REPLY_REVIEW);
   return NextResponse.json({
     ready: Boolean(process.env.DEEPSEEK_API_KEY),
     state_ready: Boolean(
       process.env.STATE_API_KEY && process.env.STATE_BASE_URL && process.env.STATE_MODEL,
     ),
-    review_ready: Boolean(
+    review_enabled: reviewEnabled,
+    review_ready: !reviewEnabled || Boolean(
       process.env.REVIEW_API_KEY && process.env.REVIEW_BASE_URL && process.env.REVIEW_MODEL,
     ),
     access_key_required: Boolean(process.env.SITE_ACCESS_KEY),
@@ -236,7 +243,8 @@ export async function POST(request: NextRequest) {
   const reviewApiKey = process.env.REVIEW_API_KEY;
   const reviewBaseUrl = (process.env.REVIEW_BASE_URL || "").replace(/\/$/, "");
   const reviewModel = process.env.REVIEW_MODEL || "";
-  if (!reviewApiKey || !reviewBaseUrl || !reviewModel) {
+  const reviewEnabled = envFlag(process.env.ENABLE_REPLY_REVIEW);
+  if (reviewEnabled && (!reviewApiKey || !reviewBaseUrl || !reviewModel)) {
     return NextResponse.json(
       { error: "回复审查模型的 API Key、Base URL 或模型名尚未配置。" },
       { status: 503 },
@@ -352,6 +360,19 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    if (!reviewEnabled) {
+      const candidate = await generateCandidate();
+      return NextResponse.json({
+        content: candidate,
+        debug: {
+          models: { chat: model, review: "" },
+          candidates: [{ attempt: 1, output: candidate }],
+          selected_attempt: 1,
+          selector_output: "",
+          review_enabled: false,
+        },
+      });
+    }
     const reviewConfig = { baseUrl: reviewBaseUrl, apiKey: reviewApiKey, model: reviewModel };
     const candidates: string[] = [];
     const reviews: ReviewResult[] = [];
