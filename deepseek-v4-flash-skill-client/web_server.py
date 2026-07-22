@@ -84,6 +84,42 @@ def env_flag(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def public_deepseek_error(exc: DeepSeekError, service: str) -> tuple[str, HTTPStatus, str]:
+    """把上游异常转换为不泄露响应正文的访客错误。"""
+    if exc.kind == "timeout":
+        return f"{service}请求超时，请稍后重试。", HTTPStatus.GATEWAY_TIMEOUT, "upstream_timeout"
+    if exc.kind == "network":
+        suffix = f"（{exc.network_code}）" if exc.network_code else ""
+        return (
+            f"无法连接{service}{suffix}，请检查代理、VPN、DNS 和网络连接。",
+            HTTPStatus.BAD_GATEWAY,
+            "upstream_network_error",
+        )
+    if exc.kind == "http" and exc.status_code is not None:
+        status = exc.status_code
+        if status == 400:
+            message = f"{service}拒绝了请求（HTTP 400），请检查模型名和请求参数。"
+            code = "upstream_bad_request"
+        elif status in {401, 403}:
+            message = f"{service}鉴权失败（HTTP {status}），请检查 API Key。"
+            code = "upstream_auth_failed"
+        elif status == 402:
+            message = f"{service}账户余额不足（HTTP 402）。"
+            code = "upstream_balance_low"
+        elif status == 429:
+            message = f"{service}请求过于频繁（HTTP 429），请稍后重试。"
+            code = "upstream_rate_limited"
+        elif status >= 500:
+            message = f"{service}暂时不可用（HTTP {status}），请稍后重试。"
+            code = "upstream_unavailable"
+        else:
+            message = f"{service}返回异常状态（HTTP {status}）。"
+            code = "upstream_http_error"
+        response_status = HTTPStatus.SERVICE_UNAVAILABLE if status in {429, 500, 502, 503, 504} else HTTPStatus.BAD_GATEWAY
+        return message, response_status, code
+    return f"{service}调用失败，请稍后重试。", HTTPStatus.BAD_GATEWAY, "model_request_failed"
+
+
 def load_dotenv(path: Path) -> None:
     """加载简单的 KEY=VALUE 配置，但不会覆盖已经存在的环境变量。"""
     if not path.is_file():
@@ -471,6 +507,8 @@ def build_live_state_with_debug(
             }
     except DeepSeekError as exc:
         print(f"心情状态生成失败：{exc}")
+        public_message, _, _ = public_deepseek_error(exc, "状态模型")
+        model_output = f"{model_output}\n降级原因：{public_message}"
 
     state = "\n".join(
         [
@@ -548,6 +586,7 @@ class FlashLabServer(ThreadingHTTPServer):
             thinking=True,
             reasoning_effort="high",
             include_reasoning_options=include_reasoning_options,
+            timeout=45.0 if is_auxiliary_client else 120.0,
         )
 
 
@@ -688,7 +727,8 @@ class FlashLabHandler(BaseHTTPRequestHandler):
                     }
             except DeepSeekError as exc:
                 print(f"DeepSeek 调用失败：{exc}")
-                self.send_json({"error": "模型服务暂时不可用，请稍后重试。"}, HTTPStatus.BAD_GATEWAY)
+                message, status, code = public_deepseek_error(exc, "DeepSeek API")
+                self.send_json({"error": message, "error_code": code}, status)
                 return
             debug["models"] = {
                 "chat": os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro"),
@@ -718,7 +758,8 @@ class FlashLabHandler(BaseHTTPRequestHandler):
                 )
             except DeepSeekError as exc:
                 print(f"记忆整理失败：{exc}")
-                self.send_json({"error": "记忆整理服务暂时不可用。"}, HTTPStatus.BAD_GATEWAY)
+                message, status, code = public_deepseek_error(exc, "记忆模型")
+                self.send_json({"error": message, "error_code": code}, status)
                 return
             self.send_json(
                 {

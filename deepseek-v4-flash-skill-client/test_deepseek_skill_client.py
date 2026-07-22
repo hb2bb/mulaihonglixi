@@ -8,14 +8,16 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from deepseek_skill_client import DeepSeekSkillClient, SkillLoader
+from deepseek_skill_client import DeepSeekError, DeepSeekSkillClient, SkillLoader
 from web_server import (
     RUNTIME_TEXT,
     RateLimiter,
+    build_live_state_with_debug,
     env_flag,
     generate_reply,
     generate_reviewed_reply,
     normalize_session_memory,
+    public_deepseek_error,
     update_session_memory,
     validate_messages,
 )
@@ -159,6 +161,38 @@ class SkillLoaderTests(unittest.TestCase):
 
 
 class WebServerTests(unittest.TestCase):
+    def test_public_network_error_is_actionable_without_internal_details(self) -> None:
+        error = DeepSeekError(
+            "包含不应发给访客的底层详情",
+            kind="network",
+            network_code="ECONNRESET",
+        )
+
+        message, status, code = public_deepseek_error(error, "DeepSeek API")
+
+        self.assertEqual(502, status)
+        self.assertEqual("upstream_network_error", code)
+        self.assertIn("ECONNRESET", message)
+        self.assertIn("代理", message)
+        self.assertNotIn("底层详情", message)
+
+    def test_state_fallback_records_the_upstream_failure(self) -> None:
+        class FailingStateClient:
+            def complete(self, messages, max_tokens):  # type: ignore[no-untyped-def]
+                raise DeepSeekError("socket reset", kind="network", network_code="ECONNRESET")
+
+        with patch("web_server.load_weather", return_value=("北京", "晴，20°C")):
+            state, debug = build_live_state_with_debug(
+                FailingStateClient(),  # type: ignore[arg-type]
+                [],
+                "",
+                "",
+            )
+
+        self.assertIn(RUNTIME_TEXT["default_mood"], state)
+        self.assertIn("降级原因", debug)
+        self.assertIn("ECONNRESET", debug)
+
     def test_validates_normal_conversation(self) -> None:
         messages = [{"role": "user", "content": "你好"}]
         self.assertEqual(messages, validate_messages(messages))
@@ -299,7 +333,7 @@ class WebServerTests(unittest.TestCase):
         self.assertIn("发送前审查器", RUNTIME_TEXT["review_system_prompt"])
         self.assertIn("葛城真冬", RUNTIME_TEXT["review_system_prompt"])
         self.assertIn("{candidate}", RUNTIME_TEXT["revision_feedback_template"])
-        self.assertEqual("明快平稳", RUNTIME_TEXT["default_mood"])
+        self.assertEqual("明快活跃", RUNTIME_TEXT["default_mood"])
 
 
 if __name__ == "__main__":

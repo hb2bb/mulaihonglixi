@@ -42,7 +42,9 @@ export default function Home() {
   const [copiedId, setCopiedId] = useState("");
   const [accessKeyRequired, setAccessKeyRequired] = useState(false);
   const [statusReady, setStatusReady] = useState(false);
-  const [accessKey, setAccessKey] = useState("");
+  const [accessKey, setAccessKey] = useState(() => (
+    typeof window === "undefined" ? "" : sessionStorage.getItem(ACCESS_KEY_STORAGE) || ""
+  ));
   const [accessKeyInput, setAccessKeyInput] = useState("");
   const [pendingContent, setPendingContent] = useState("");
   const [debugOpen, setDebugOpen] = useState(false);
@@ -91,7 +93,8 @@ export default function Home() {
         });
         const data = (await response.json()) as {
           state?: unknown;
-          debug?: { model?: unknown; output?: unknown };
+          error?: unknown;
+          debug?: { model?: unknown; output?: unknown; degraded?: unknown };
         };
         if (response.ok && typeof data.state === "string") {
           liveStateRef.current = data.state;
@@ -103,6 +106,12 @@ export default function Home() {
               output: data.debug.output,
             }]);
           }
+        } else if (typeof data.error === "string") {
+          appendDebug([{
+            label: "状态模型错误",
+            model: "STATE_MODEL",
+            output: data.error,
+          }]);
         }
       } catch (stateError) {
         if ((stateError as Error).name !== "AbortError") {
@@ -118,15 +127,6 @@ export default function Home() {
   useEffect(() => {
     // 清理旧版本的持久化记录；刷新或重新进入网站时始终从空对话开始。
     localStorage.removeItem(STORAGE_KEY);
-    setMessages([]);
-    messagesRef.current = [];
-    sessionMemoryRef.current = "";
-    liveStateRef.current = "";
-    setDebugMemory("");
-    setDebugLiveState("");
-    setDebugEntries([]);
-    lastMemoryCheckCountRef.current = 0;
-    setAccessKey(sessionStorage.getItem(ACCESS_KEY_STORAGE) || "");
 
     void fetch("/api/chat")
       .then((response) => response.json())
@@ -191,6 +191,7 @@ export default function Home() {
       });
       const data = (await response.json()) as {
         memory?: unknown;
+        error?: unknown;
         debug?: { model?: unknown; output?: unknown };
       };
       if (response.ok && typeof data.memory === "string") {
@@ -203,6 +204,12 @@ export default function Home() {
             output: data.debug.output,
           }]);
         }
+      } else if (typeof data.error === "string") {
+        appendDebug([{
+          label: "记忆模型错误",
+          model: "DEEPSEEK_MEMORY_MODEL",
+          output: data.error,
+        }]);
       }
     } catch (memoryError) {
       if ((memoryError as Error).name === "AbortError") {
