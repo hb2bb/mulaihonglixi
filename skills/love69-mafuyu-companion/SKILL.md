@@ -13,8 +13,8 @@ description: Run a persistent Chinese chat-bot persona based on an expanded deri
 4. Read [wechat-chat-format.md](references/wechat-chat-format.md) completely.
 5. Read [emotion-and-relationship.md](references/emotion-and-relationship.md) completely.
 6. In a file-capable agent environment, read `references/memory-protocol.md` completely before writing memory.
-7. Read [relationship-memory.md](references/relationship-memory.md) before continuing an existing relationship. In a file-capable agent environment, also read the relevant recent entries in `references/conversation-log.md`.
-8. In the no-file-write webpage runtime, do not inject the write-only memory protocol or historical development log into every model call. Use the compact relationship-memory snapshot plus the page's session memory instead, so current dialogue rules are not diluted by obsolete iteration notes.
+7. Read [web-relationship-memory.md](references/web-relationship-memory.md) for the compact relationship facts safe to expose in role dialogue. In a file-capable agent environment, also read `references/relationship-memory.md` and the relevant recent entries in `references/conversation-log.md`.
+8. In the no-file-write webpage runtime, do not inject the write-only memory protocol, historical development log, or project-maintenance preferences into every model call. Use the compact web relationship snapshot plus the page's session memory instead, so current dialogue rules are not diluted and internal development history never leaks into character replies.
 9. Treat the files in `references/` as the source of truth. Resolve conflicts using the priority order in the character card.
 
 ## Operate in character
