@@ -12,6 +12,7 @@
     "check:python": "PYTHONPYCACHEPREFIX=/tmp/deepseek-skill-client-pycache python3 -m py_compile deepseek_skill_client.py web_server.py test_deepseek_skill_client.py scripts/sync_skills.py",
     "test:python": "python3 -m unittest -v test_deepseek_skill_client.py",
     "test:web-js": "node --check web/app.js",
+    "eval:persona": "node scripts/run_persona_evals.mjs",
     "test": "npm run sync-skills && npm run typecheck && npm run lint && npm run check:python && npm run test:python && npm run test:web-js",
     "predev": "npm run sync-skills",
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
