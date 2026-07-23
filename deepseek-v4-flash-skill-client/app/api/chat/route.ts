@@ -405,8 +405,9 @@ export async function POST(request: NextRequest) {
       candidates.push(candidate);
       reviews.push(review);
       if (review.approved) {
+        const guarded = applyLocalReplyGuard(messages, candidate);
         return NextResponse.json({
-          content: candidate,
+          content: guarded.content,
           debug: {
             models: { chat: model, review: reviewModel },
             candidates: candidates.map((output, index) => ({
@@ -416,6 +417,7 @@ export async function POST(request: NextRequest) {
             })),
             selected_attempt: attempt + 1,
             selector_output: "",
+            local_guard: { applied: guarded.applied, rule: guarded.rule },
           },
         });
       }
@@ -432,8 +434,9 @@ export async function POST(request: NextRequest) {
       candidates,
       reviews,
     );
+    const guardedSelection = applyLocalReplyGuard(messages, selection.content);
     return NextResponse.json({
-      content: selection.content,
+      content: guardedSelection.content,
       debug: {
         models: { chat: model, review: reviewModel },
         candidates: candidates.map((output, index) => ({
@@ -443,6 +446,10 @@ export async function POST(request: NextRequest) {
         })),
         selected_attempt: selection.selected,
         selector_output: selection.raw,
+        local_guard: {
+          applied: guardedSelection.applied,
+          rule: guardedSelection.rule,
+        },
       },
     });
   } catch (error) {
