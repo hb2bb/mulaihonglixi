@@ -5,6 +5,7 @@ import {
   ModelUpstreamError,
   publicModelFailure,
 } from "@/lib/model-api-error";
+import { applyLocalReplyGuard } from "@/lib/reply-guard";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -372,14 +373,16 @@ export async function POST(request: NextRequest) {
   try {
     if (!reviewEnabled) {
       const candidate = await generateCandidate();
+      const guarded = applyLocalReplyGuard(messages, candidate);
       return NextResponse.json({
-        content: candidate,
+        content: guarded.content,
         debug: {
           models: { chat: model, review: "" },
           candidates: [{ attempt: 1, output: candidate }],
           selected_attempt: 1,
           selector_output: "",
           review_enabled: false,
+          local_guard: { applied: guarded.applied, rule: guarded.rule },
         },
       });
     }
