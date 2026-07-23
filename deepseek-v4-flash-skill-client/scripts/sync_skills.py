@@ -19,6 +19,7 @@ RUNTIME_TEXT_KEYS = {
     "web_runtime_prompt",
     "session_memory_prompt_template",
     "live_state_prompt_template",
+    "response_guard_prompt",
     "revision_feedback_template",
     "default_review_problem",
     "memory_system_prompt",

@@ -318,6 +318,7 @@ export async function POST(request: NextRequest) {
           },
         ]
       : []),
+    { role: "system" as const, content: RUNTIME_TEXT.response_guard_prompt },
     ...messages,
   ];
 
