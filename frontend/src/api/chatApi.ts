@@ -5,7 +5,13 @@
  *   GET  /api/v1/chat/stream   流式对话（SSE）
  */
 import request from './request'
-import type { ApiResponse, ChatReplyData, ChatSendParams } from '@/types/chat'
+import type {
+  ApiResponse,
+  ChatHistoryData,
+  ChatHistoryParams,
+  ChatReplyData,
+  ChatSendParams,
+} from '@/types/chat'
 
 /**
  * 非流式对话：发送消息并等待完整回复。
@@ -14,6 +20,21 @@ import type { ApiResponse, ChatReplyData, ChatSendParams } from '@/types/chat'
  */
 export async function sendChat(params: ChatSendParams): Promise<ChatReplyData> {
   const resp = await request.post<ApiResponse<ChatReplyData>>('/chat', params)
+  return resp.data.data
+}
+
+/**
+ * 历史记录分页：获取某会话的消息（时间正序，旧 -> 新）。
+ * @param params session_id + offset + limit
+ * @returns ChatHistoryData { session_id, messages, total, offset, limit, has_more }
+ */
+export async function fetchHistory(
+  params: ChatHistoryParams
+): Promise<ChatHistoryData> {
+  const { session_id, offset = 0, limit = 20 } = params
+  const resp = await request.get<ApiResponse<ChatHistoryData>>('/chat/history', {
+    params: { session_id: session_id || undefined, offset, limit },
+  })
   return resp.data.data
 }
 

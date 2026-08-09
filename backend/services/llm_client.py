@@ -137,4 +137,78 @@ class MockLLMClient:
         return reply
 
 
-__all__ = ["LLMClient", "MockLLMClient"]
+class DeepSeekLLMClient:
+    """DeepSeek LLM 客户端：基于 langchain_openai.ChatOpenAI 接入 DeepSeek API。
+
+    DeepSeek 提供 OpenAI 兼容接口，base_url=https://api.deepseek.com，
+    模型名 deepseek-v4-flash（V4-Flash 非思考模式，适合实时聊天）。
+
+    通过 LLMClient Protocol 暴露 chat / stream_chat 两个方法，
+    业务层无感知底层实现切换。
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "deepseek-v4-flash",
+        base_url: str = "https://api.deepseek.com",
+        max_tokens: int = 512,
+        temperature: float = 0.8,
+    ) -> None:
+        from langchain_openai import ChatOpenAI
+
+        self._client: ChatOpenAI = ChatOpenAI(
+            api_key=api_key,
+            model=model,
+            base_url=base_url,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            streaming=False,
+        )
+        # 流式专用实例（streaming=True 让 ChatOpenAI 走 SSE 通道）
+        self._stream_client: ChatOpenAI = ChatOpenAI(
+            api_key=api_key,
+            model=model,
+            base_url=base_url,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            streaming=True,
+        )
+        logger.info(
+            f"DeepSeekLLMClient initialized: model={model} base_url={base_url} "
+            f"max_tokens={max_tokens} temperature={temperature}"
+        )
+
+    async def chat(self, messages: list[BaseMessage]) -> str:
+        """非流式对话：调用 DeepSeek API 返回完整回复。"""
+        try:
+            response = await self._client.ainvoke(messages)
+            content = response.content
+            reply = content if isinstance(content, str) else str(content)
+            logger.debug(
+                f"deepseek chat: messages={len(messages)} reply_len={len(reply)}"
+            )
+            return reply
+        except Exception as exc:
+            logger.error(f"deepseek chat failed: {exc}")
+            raise
+
+    async def stream_chat(self, messages: list[BaseMessage]) -> AsyncIterator[str]:
+        """流式对话：通过 SSE 逐 chunk 返回回复片段。"""
+        try:
+            collected_len = 0
+            async for chunk in self._stream_client.astream(messages):
+                content = chunk.content
+                text = content if isinstance(content, str) else str(content)
+                if text:
+                    collected_len += len(text)
+                    yield text
+            logger.debug(
+                f"deepseek stream done: messages={len(messages)} total_len={collected_len}"
+            )
+        except Exception as exc:
+            logger.error(f"deepseek stream failed: {exc}")
+            raise
+
+
+__all__ = ["LLMClient", "MockLLMClient", "DeepSeekLLMClient"]

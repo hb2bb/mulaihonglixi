@@ -20,7 +20,13 @@
       </div>
     </header>
 
-    <MessageList :messages="chatStore.messages" />
+    <MessageList
+      :messages="chatStore.messages"
+      :loading-history="chatStore.isLoadingHistory && chatStore.messages.length > 0"
+      :initial-loading="chatStore.isLoadingHistory && chatStore.messages.length === 0"
+      :has-more="chatStore.hasMoreHistory"
+      @load-older="chatStore.loadOlderHistory"
+    />
 
     <div v-if="chatStore.errorMessage" class="chat-view__error">
       {{ chatStore.errorMessage }}
@@ -34,6 +40,7 @@
 /**
  * 聊天页面：单列居中布局，header + 消息列表 + 输入框。
  */
+import { onMounted } from 'vue'
 import { useChatStore } from '@/store/chat'
 import MessageList from '@/components/business/MessageList.vue'
 import ChatInput from '@/components/business/ChatInput.vue'
@@ -43,6 +50,11 @@ const chatStore = useChatStore()
 async function handleSend(text: string): Promise<void> {
   await chatStore.sendMessage(text)
 }
+
+// 进入页面加载最近会话的历史消息
+onMounted(() => {
+  void chatStore.loadInitialHistory()
+})
 </script>
 
 <style scoped>

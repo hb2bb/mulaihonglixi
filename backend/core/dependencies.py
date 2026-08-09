@@ -5,7 +5,7 @@
 from functools import lru_cache
 
 from services.chat_service import ChatService
-from services.llm_client import LLMClient, MockLLMClient
+from services.llm_client import DeepSeekLLMClient, LLMClient, MockLLMClient
 from services.prompt_service import PromptService
 from core.config import settings
 
@@ -14,16 +14,24 @@ from core.config import settings
 def get_llm_client() -> LLMClient:
     """根据 settings.llm_provider 返回对应 LLM 客户端单例。
 
-    DEMO 阶段仅支持 mock，未来扩展 claude/deepseek 时在此分支。
+    支持的 provider：
+    - mock: MockLLMClient（DEMO 用，不调真实 API）
+    - deepseek: DeepSeekLLMClient（基于 langchain_openai.ChatOpenAI）
     """
     provider = settings.llm_provider.lower()
     if provider == "mock":
         return MockLLMClient()
+    elif provider == "deepseek":
+        if not settings.llm_api_key:
+            raise ValueError("LLM_PROVIDER=deepseek 但 LLM_API_KEY 为空，请检查 .env")
+        return DeepSeekLLMClient(
+            api_key=settings.llm_api_key,
+            model=settings.llm_model or "deepseek-v4-flash",
+            base_url=settings.llm_base_url or "https://api.deepseek.com",
+        )
     # 未来扩展：
     # elif provider == "claude":
     #     return ClaudeLLMClient(api_key=settings.llm_api_key, model=settings.llm_model)
-    # elif provider == "deepseek":
-    #     return DeepSeekLLMClient(...)
     raise ValueError(f"unsupported llm_provider: {provider}")
 
 

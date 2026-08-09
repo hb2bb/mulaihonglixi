@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from core.exceptions import success_resp, ValidationError
 from core.logger import logger
 from schemas.request.chat import ChatRequest
-from schemas.response.chat import ChatResponseData
+from schemas.response.chat import ChatHistoryData, ChatHistoryItem, ChatResponseData
 from services.chat_service import ChatService
 from utils.datetime_util import now_iso
 from core.dependencies import get_chat_service
@@ -25,6 +25,57 @@ async def chat(
     data: ChatResponseData = await chat_service.handle_chat(
         message=request.message,
         session_id=request.session_id,
+    )
+    return success_resp(data=data)
+
+
+@router.get("/history")
+async def chat_history(
+    session_id: str | None = Query(None, description="会话 ID，为空则返回最近会话"),
+    offset: int = Query(0, ge=0, description="已从最新端跳过的条数，首次为 0"),
+    limit: int = Query(20, ge=1, le=100, description="每页条数"),
+    chat_service: ChatService = Depends(get_chat_service),
+):
+    """历史记录分页：返回某会话的消息（时间正序，旧 -> 新）。
+
+    - session_id 为空时，自动定位最近修改的会话。
+    - offset=0 返回最新的一页；向上滚动加载更早消息时增大 offset。
+    """
+    # 定位会话：显式传入则校验，否则取最近会话
+    if session_id:
+        resolved_sid = chat_service.resolve_session_id(session_id)
+    else:
+        session_ids = await chat_service.list_session_ids()
+        if not session_ids:
+            return success_resp(
+                data=ChatHistoryData(
+                    session_id="",
+                    messages=[],
+                    total=0,
+                    offset=0,
+                    limit=limit,
+                    has_more=False,
+                )
+            )
+        resolved_sid = session_ids[0]
+
+    page, total, has_more = await chat_service.load_history_page(
+        session_id=resolved_sid,
+        offset=offset,
+        limit=limit,
+    )
+    items = [ChatHistoryItem(**record) for record in page]
+    data = ChatHistoryData(
+        session_id=resolved_sid,
+        messages=items,
+        total=total,
+        offset=offset,
+        limit=limit,
+        has_more=has_more,
+    )
+    logger.info(
+        f"GET /chat/history: session={resolved_sid} offset={offset} "
+        f"limit={limit} total={total} has_more={has_more}"
     )
     return success_resp(data=data)
 

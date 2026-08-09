@@ -5,8 +5,9 @@
 """
 import asyncio
 import json
+import random
 from pathlib import Path
-from typing import AsyncIterator
+from typing import AsyncIterator, Optional
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
@@ -17,6 +18,12 @@ from schemas.request.chat import ChatRequest
 from schemas.response.chat import ChatResponseData
 from services.llm_client import LLMClient
 from services.prompt_service import PromptService
+from tools.web_search_tool import (
+    WebSearchTool,
+    build_search_context,
+    get_web_search_tool,
+    pick_topic,
+)
 from utils.common import generate_session_id, is_valid_session_id, safe_history_path
 from utils.datetime_util import now_dt, now_iso
 
@@ -29,10 +36,12 @@ class ChatService:
         llm_client: LLMClient,
         prompt_service: PromptService,
         history_dir: Path | None = None,
+        web_search_tool: Optional[WebSearchTool] = None,
     ) -> None:
         self._llm_client: LLMClient = llm_client
         self._prompt_service: PromptService = prompt_service
         self._history_dir: Path = history_dir or settings.chat_history_path
+        self._web_search_tool: Optional[WebSearchTool] = web_search_tool
 
     async def handle_chat(
         self,
@@ -50,7 +59,8 @@ class ChatService:
         """
         session_id = self.resolve_session_id(session_id)
         history = await self._load_history(session_id)
-        messages = self._assemble_messages(history, message)
+        search_context = await self._maybe_search(message)
+        messages = self._assemble_messages(history, message, search_context)
         reply = await self._llm_client.chat(messages)
         await self._persist_history(
             session_id,
@@ -61,7 +71,7 @@ class ChatService:
         dt = now_dt()
         logger.info(
             f"chat done: session={session_id} reply_len={len(reply)} "
-            f"history_len={len(history) + 2}"
+            f"history_len={len(history) + 2} search_ctx={len(search_context or '')}"
         )
         return ChatResponseData(session_id=session_id, reply=reply, datetime=dt)
 
@@ -81,7 +91,8 @@ class ChatService:
         """
         session_id = self.resolve_session_id(session_id)
         history = await self._load_history(session_id)
-        messages = self._assemble_messages(history, message)
+        search_context = await self._maybe_search(message)
+        messages = self._assemble_messages(history, message, search_context)
         # 收集完整回复，流结束后持久化
         collected: list[str] = []
         async for chunk in self._llm_client.stream_chat(messages):
@@ -96,7 +107,7 @@ class ChatService:
         )
         logger.info(
             f"stream done: session={session_id} reply_len={len(full_reply)} "
-            f"history_len={len(history) + 2}"
+            f"history_len={len(history) + 2} search_ctx={len(search_context or '')}"
         )
 
     def resolve_session_id(self, session_id: str | None) -> str:
@@ -147,6 +158,47 @@ class ChatService:
         data = await asyncio.to_thread(self._read_json_file, filepath)
         logger.debug(f"loaded history: session={session_id} records={len(data)}")
         return data
+
+    async def list_session_ids(self) -> list[str]:
+        """按最后修改时间倒序返回所有会话 ID（最新的在前）。
+
+        用于进入页面时定位"最近会话"，或前端展示会话入口。
+        """
+        self._history_dir.mkdir(parents=True, exist_ok=True)
+        files = [p for p in self._history_dir.glob("*.json") if p.is_file()]
+        # 按 mtime 倒序
+        files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        return [p.stem for p in files]
+
+    async def load_history_page(
+        self,
+        session_id: str,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[dict], int, bool]:
+        """分页加载历史消息（时间正序，旧 -> 新）。
+
+        Args:
+            session_id: 会话 ID。
+            offset: 已从最新端跳过的条数（首次为 0，向上滚动后递增）。
+            limit: 每页条数。
+
+        Returns:
+            (page, total, has_more)：page 为本页消息（正序），
+            total 为历史总条数，has_more 表示是否还有更早的消息。
+        """
+        history = await self._load_history(session_id)
+        total = len(history)
+        limit = max(1, min(limit, 100))
+        offset = max(0, offset)
+        if offset >= total:
+            return [], total, False
+        # 从最新端往前取 limit 条
+        end = total - offset
+        start = max(0, end - limit)
+        page = history[start:end]
+        has_more = start > 0
+        return page, total, has_more
 
     async def _persist_history(
         self,
