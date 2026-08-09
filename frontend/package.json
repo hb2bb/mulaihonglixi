@@ -1,0 +1,26 @@
+{
+  "name": "ai-girlfriend-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.5.12",
+    "vue-router": "^4.4.5",
+    "pinia": "^2.2.6",
+    "axios": "^1.7.7",
+    "@arco-design/web-vue": "^2.56.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.4",
+    "vite": "^5.4.10",
+    "typescript": "~5.6.3",
+    "vue-tsc": "^2.1.10",
+    "@types/node": "^22.9.0"
+  }
+}

@@ -1,0 +1,56 @@
+# === OS / Editor ===
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# === Python (backend) ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.eggs/
+*.egg
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.log
+
+# === Node / Frontend ===
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.eslintcache
+.npm/
+.pnpm-store/
+
+# === Env / Secrets ===
+.env
+.env.*
+!.env.example
+
+# === Runtime data / logs ===
+backend/logs/
+backend/data/
+
+# === Project tooling ===
+.omo/
+
+# === Docker ===
+docker/**/node_modules/

@@ -1,0 +1,64 @@
+/* 全局样式 + CSS 变量主题 */
+:root {
+  /* 主题色 - 偏暖白背景 + 知夏配色 */
+  --color-bg: #faf8f5;
+  --color-bg-secondary: #ffffff;
+  --color-text-primary: #1d2129;
+  --color-text-secondary: #4e5969;
+  --color-text-tertiary: #86909c;
+  --color-border: #e5e6eb;
+  --color-primary: #f7658b;
+  --color-primary-light: #ffe4ec;
+  --color-user-bubble: #f7658b;
+  --color-user-text: #ffffff;
+  --color-assistant-bubble: #ffffff;
+  --color-assistant-text: #1d2129;
+  --color-shadow: rgba(0, 0, 0, 0.06);
+
+  /* 尺寸 */
+  --chat-max-width: 768px;
+  --header-height: 56px;
+  --input-height: 64px;
+  --bubble-radius: 12px;
+  --bubble-max-width: 70%;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
