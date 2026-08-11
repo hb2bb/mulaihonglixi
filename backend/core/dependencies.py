@@ -7,6 +7,8 @@ from functools import lru_cache
 from services.chat_service import ChatService
 from services.llm_client import DeepSeekLLMClient, LLMClient, MockLLMClient
 from services.prompt_service import PromptService
+from tools.web_search_tool import WebSearchTool, get_web_search_tool
+from tools.weather_search_tool import WeatherSearchTool, get_weather_search_tool
 from core.config import settings
 
 
@@ -42,10 +44,12 @@ def get_prompt_service() -> PromptService:
 
 
 def get_chat_service() -> ChatService:
-    """构造 ChatService，注入 llm_client 和 prompt_service。"""
+    """构造 ChatService，注入 llm_client、prompt_service、web_search_tool、weather_search_tool。"""
     return ChatService(
         llm_client=get_llm_client(),
         prompt_service=get_prompt_service(),
+        web_search_tool=get_web_search_tool(),
+        weather_search_tool=get_weather_search_tool(),
     )
 
 
