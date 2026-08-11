@@ -11,8 +11,10 @@ export default defineConfig({
     },
   },
   server: {
-    host: '0.0.0.0',
-    port: 5173,
+    host: '127.0.0.1',
+    port: 3000,
+    // 允许 Cloudflare 隧道域名访问（trycloudflare 子域名每次都会变，用通配放行）
+    allowedHosts: ['.trycloudflare.com'],
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
