@@ -1,0 +1,43 @@
+{
+  "mode": "dialogue",
+  "cases": "evals/wen-zhao/dialogue-targeted-regression-v6.json",
+  "results": "evals/wen-zhao/results/postfix-v6-final-1.jsonl",
+  "model": "deepseek-v4-flash",
+  "judge": {
+    "enabled": false,
+    "model": null,
+    "independent_model": false,
+    "semantic": false,
+    "style": false
+  },
+  "profile": {
+    "request_order": [
+      "persona_system_prompt",
+      "skill_bundle",
+      "web_runtime_prompt",
+      "session_memory_optional",
+      "live_state_optional",
+      "response_guard_prompt",
+      "conversation_messages"
+    ],
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 8192,
+    "timeout_seconds": 150,
+    "stream": false
+  },
+  "summary": {
+    "items": 1,
+    "passed": 1,
+    "rate": 1.0,
+    "style_warning_items": 0,
+    "by_category": {
+      "自然度最终复测": {
+        "items": 1,
+        "passed": 1,
+        "style_warning_items": 0,
+        "rate": 1.0
+      }
+    }
+  }
+}

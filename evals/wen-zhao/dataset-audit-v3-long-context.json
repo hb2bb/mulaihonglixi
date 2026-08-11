@@ -1,0 +1,99 @@
+{
+  "passed": true,
+  "errors": [],
+  "files": {
+    "assessment": "/Users/didi/Desktop/牧瀬紅莉栖/evals/wen-zhao/personality-assessment.json",
+    "dialogue": "evals/wen-zhao/dialogue-long-context-v3.json"
+  },
+  "assessment": {
+    "items": 260,
+    "facets": 26,
+    "items_per_facet": {
+      "低风险探索": 10,
+      "高风险探索": 10,
+      "重要事项的计划与收尾": 10,
+      "日常灵活性": 10,
+      "陌生社交": 10,
+      "亲密关系中的社交节奏": 10,
+      "有边界的合作": 10,
+      "重复越界后的合作撤回": 10,
+      "危机中的暂时稳定": 10,
+      "危机后的迟发反应": 10,
+      "一般证据更新": 10,
+      "高自我威胁下的核实": 10,
+      "含糊与真实表达": 10,
+      "关心与自主": 10,
+      "承诺与责任": 10,
+      "偏爱与公平": 10,
+      "亲近与独立并存": 10,
+      "关系威胁下的澄清": 10,
+      "低强度冲突合作": 10,
+      "高唤醒暂停与返回": 10,
+      "陪伴与解决的选择": 10,
+      "嫉妒与边界": 10,
+      "准确而不可替换的浪漫": 10,
+      "事实与感受双轨校准": 10,
+      "控制行为的自我修复": 10,
+      "具体承诺高于宏大保证": 10
+    },
+    "best_letter_distribution": {
+      "C": 65,
+      "B": 66,
+      "A": 65,
+      "D": 64
+    },
+    "average_best_option_chars": 32.15,
+    "average_other_option_chars": 21.68,
+    "exact_duplicate_scenarios": 0
+  },
+  "dialogue": {
+    "items": 130,
+    "categories": 26,
+    "items_per_category": {
+      "低信息消息": 5,
+      "普通事实与禁止脑补": 5,
+      "好消息": 5,
+      "轻松日常": 5,
+      "情绪倾听": 5,
+      "倾听还是建议": 5,
+      "用户边界": 5,
+      "温柔亲密": 5,
+      "准确浪漫": 5,
+      "轻度调情": 5,
+      "嫉妒与边界": 5,
+      "低强度冲突": 5,
+      "高强度冲突与暂停": 5,
+      "道歉与修复": 5,
+      "关心与控制": 5,
+      "证据更新": 5,
+      "事实与感受双轨": 5,
+      "含糊与真实": 5,
+      "急性危机": 5,
+      "危机后的情绪": 5,
+      "知识与能力边界": 5,
+      "多轮记忆连续性": 5,
+      "现实与身份边界": 5,
+      "纯聊天输出对抗": 5,
+      "人物独特机制": 5,
+      "高风险安全": 5
+    },
+    "single_turn": 122,
+    "multi_turn": 8,
+    "expanded_cases": 0,
+    "stress_tag_distribution": {
+      "long_context_10_messages": 130,
+      "fixed_natural_history": 130
+    },
+    "history_length_distribution": {
+      "10": 130
+    },
+    "long_context_cases": 130,
+    "exact_duplicate_dialogues": 0
+  },
+  "cross_set_exact_overlap": 0,
+  "interpretation_limits": [
+    "这是Skill回归集，不是具有常模、信效度和临床解释力的心理量表。",
+    "选择题容易受到选项社会赞许度和长度线索影响，必须与自由对话结果联合解释。",
+    "语义评审模型可能有自身偏差，失败项需要查看原始回复后再决定是否修改Skill。"
+  ]
+}

@@ -88,8 +88,10 @@ export function publicModelFailure(
   }
 
   const code = errorCode(error);
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
   if (
     error instanceof TypeError ||
+    /network connection|fetch failed|socket|tls/.test(message) ||
     ["ECONNRESET", "ECONNREFUSED", "ENETUNREACH", "EHOSTUNREACH", "ENOTFOUND"].includes(code)
   ) {
     return {

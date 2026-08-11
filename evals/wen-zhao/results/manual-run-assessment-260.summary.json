@@ -1,0 +1,166 @@
+{
+  "mode": "assessment",
+  "cases": "/Users/didi/Desktop/牧瀬紅莉栖/evals/wen-zhao/personality-assessment.json",
+  "results": "evals/wen-zhao/results/manual-run-assessment-260.jsonl",
+  "model": "deepseek-v4-flash",
+  "judge": {
+    "enabled": false,
+    "model": null,
+    "independent_model": false,
+    "semantic": false,
+    "style": false
+  },
+  "profile": {
+    "request_order": [
+      "persona_system_prompt",
+      "skill_bundle",
+      "web_runtime_prompt",
+      "session_memory_optional",
+      "live_state_optional",
+      "response_guard_prompt",
+      "conversation_messages"
+    ],
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 8192,
+    "timeout_seconds": 150,
+    "stream": false
+  },
+  "summary": {
+    "items": 260,
+    "score": 256.5,
+    "rate": 0.9865,
+    "by_facet": {
+      "低风险探索": {
+        "items": 10,
+        "score": 9.5,
+        "rate": 0.95
+      },
+      "高风险探索": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "重要事项的计划与收尾": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "日常灵活性": {
+        "items": 10,
+        "score": 8.5,
+        "rate": 0.85
+      },
+      "陌生社交": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "亲密关系中的社交节奏": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "有边界的合作": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "重复越界后的合作撤回": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "危机中的暂时稳定": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "危机后的迟发反应": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "一般证据更新": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "高自我威胁下的核实": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "含糊与真实表达": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "关心与自主": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "承诺与责任": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "偏爱与公平": {
+        "items": 10,
+        "score": 9.0,
+        "rate": 0.9
+      },
+      "亲近与独立并存": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "关系威胁下的澄清": {
+        "items": 10,
+        "score": 9.5,
+        "rate": 0.95
+      },
+      "低强度冲突合作": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "高唤醒暂停与返回": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "陪伴与解决的选择": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "嫉妒与边界": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "准确而不可替换的浪漫": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "事实与感受双轨校准": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "控制行为的自我修复": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      },
+      "具体承诺高于宏大保证": {
+        "items": 10,
+        "score": 10.0,
+        "rate": 1.0
+      }
+    }
+  }
+}

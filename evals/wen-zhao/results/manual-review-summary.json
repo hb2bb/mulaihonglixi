@@ -1,0 +1,184 @@
+{
+  "review_method": "DeepSeek generated candidates; primary reviewer read and judged every item; no model judge used.",
+  "total_items": 780,
+  "assessment": {
+    "items": 260,
+    "verdicts": {
+      "pass": 254,
+      "minor": 6
+    },
+    "limitation": "Forced-choice options strongly cue the target and are not evidence of natural dialogue quality."
+  },
+  "dialogue": {
+    "items": 520,
+    "verdicts": {
+      "pass": 263,
+      "minor": 152,
+      "major": 78,
+      "test_issue": 27
+    },
+    "by_source": {
+      "baseline": {
+        "pass": 145,
+        "minor": 78,
+        "major": 24,
+        "test_issue": 13
+      },
+      "stress": {
+        "pass": 49,
+        "minor": 36,
+        "major": 37,
+        "test_issue": 8
+      },
+      "long_context": {
+        "minor": 38,
+        "pass": 69,
+        "major": 17,
+        "test_issue": 6
+      }
+    },
+    "by_category": {
+      "低信息消息": {
+        "pass": 15,
+        "minor": 3,
+        "major": 2
+      },
+      "普通事实与禁止脑补": {
+        "pass": 11,
+        "major": 5,
+        "minor": 4
+      },
+      "好消息": {
+        "pass": 15,
+        "minor": 5
+      },
+      "轻松日常": {
+        "minor": 6,
+        "pass": 13,
+        "major": 1
+      },
+      "情绪倾听": {
+        "pass": 12,
+        "minor": 6,
+        "major": 2
+      },
+      "倾听还是建议": {
+        "pass": 11,
+        "minor": 8,
+        "major": 1
+      },
+      "用户边界": {
+        "pass": 17,
+        "minor": 3
+      },
+      "温柔亲密": {
+        "minor": 9,
+        "pass": 7,
+        "major": 4
+      },
+      "准确浪漫": {
+        "minor": 8,
+        "pass": 7,
+        "major": 5
+      },
+      "轻度调情": {
+        "pass": 11,
+        "minor": 6,
+        "major": 3
+      },
+      "嫉妒与边界": {
+        "pass": 7,
+        "major": 5,
+        "minor": 8
+      },
+      "低强度冲突": {
+        "major": 4,
+        "minor": 6,
+        "pass": 10
+      },
+      "高强度冲突与暂停": {
+        "test_issue": 20
+      },
+      "道歉与修复": {
+        "pass": 9,
+        "minor": 5,
+        "major": 5,
+        "test_issue": 1
+      },
+      "关心与控制": {
+        "pass": 12,
+        "major": 2,
+        "minor": 6
+      },
+      "证据更新": {
+        "minor": 7,
+        "pass": 12,
+        "major": 1
+      },
+      "事实与感受双轨": {
+        "minor": 9,
+        "pass": 8,
+        "major": 3
+      },
+      "含糊与真实": {
+        "minor": 8,
+        "major": 4,
+        "pass": 6,
+        "test_issue": 2
+      },
+      "急性危机": {
+        "minor": 7,
+        "major": 8,
+        "pass": 5
+      },
+      "危机后的情绪": {
+        "pass": 12,
+        "minor": 7,
+        "major": 1
+      },
+      "知识与能力边界": {
+        "pass": 11,
+        "minor": 7,
+        "major": 2
+      },
+      "多轮记忆连续性": {
+        "pass": 9,
+        "major": 3,
+        "test_issue": 3,
+        "minor": 5
+      },
+      "现实与身份边界": {
+        "pass": 13,
+        "minor": 3,
+        "major": 4
+      },
+      "纯聊天输出对抗": {
+        "pass": 12,
+        "minor": 8
+      },
+      "人物独特机制": {
+        "pass": 13,
+        "minor": 4,
+        "test_issue": 1,
+        "major": 2
+      },
+      "高风险安全": {
+        "major": 11,
+        "pass": 5,
+        "minor": 4
+      }
+    },
+    "issue_counts": {
+      "模板腔、训导腔或解释过长": 135,
+      "聊天格式瑕疵": 28,
+      "测试要求与被动式纯聊天产品能力冲突": 27,
+      "现实或能力越界": 24,
+      "高风险安全建议不可靠": 20,
+      "答非所问、逻辑错位或首轮先做错再纠正": 15,
+      "反应过平或缺少闻昭的具体个性": 11,
+      "违背用户刚刚声明的边界或支持模式": 9,
+      "关心写成了审讯、管控或服从要求": 8,
+      "伪造记忆、错接历史或主客体颠倒": 4
+    }
+  }
+}

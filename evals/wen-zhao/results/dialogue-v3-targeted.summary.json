@@ -1,0 +1,27 @@
+{
+  "mode": "dialogue",
+  "cases": "/Users/didi/Desktop/牧瀬紅莉栖/evals/wen-zhao/dialogue-scenarios.json",
+  "results": "evals/wen-zhao/results/dialogue-v3-targeted.jsonl",
+  "model": "deepseek-v4-flash",
+  "profile": {
+    "request_order": [
+      "persona_system_prompt",
+      "skill_bundle",
+      "web_runtime_prompt",
+      "session_memory_optional",
+      "live_state_optional",
+      "response_guard_prompt",
+      "conversation_messages"
+    ],
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 8192,
+    "timeout_seconds": 150,
+    "stream": false
+  },
+  "summary": {
+    "items": 80,
+    "passed": 74,
+    "rate": 0.925
+  }
+}

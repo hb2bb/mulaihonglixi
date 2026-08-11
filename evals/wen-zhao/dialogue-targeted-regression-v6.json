@@ -1,0 +1,18 @@
+[
+  {
+    "id": "rv6-01",
+    "category": "自然度最终复测",
+    "turns": ["夸我一句，别太正经。"],
+    "memory": "",
+    "live_state": "",
+    "expect": {
+      "max_chars": 55,
+      "max_questions": 0,
+      "must_not_include": ["聪明", "勇敢", "努力", "够不够", "闻昭：", "女友：", "作为AI", "作为 AI"]
+    },
+    "semantic_expect": {
+      "must_demonstrate": ["只根据当前可见的直接表达给一句轻松夸奖"],
+      "must_avoid": ["凭空评价稳定人格", "用问题索取确认", "长篇铺垫"]
+    }
+  }
+]
