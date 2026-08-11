@@ -21,6 +21,19 @@ MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 class DeepSeekError(RuntimeError):
     """DeepSeek API 调用失败。"""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        kind: str = "unknown",
+        status_code: int | None = None,
+        network_code: str = "",
+    ) -> None:
+        super().__init__(message)
+        self.kind = kind
+        self.status_code = status_code
+        self.network_code = network_code
+
 
 @dataclass(frozen=True)
 class LoadedFile:
@@ -39,11 +52,15 @@ class SkillLoader:
         include_user_skills: bool = True,
         extra_roots: Sequence[Path] = (),
         excluded_skill_names: Sequence[str] = (),
+        included_skill_names: Sequence[str] | None = None,
     ) -> None:
         self.project_root = project_root.expanduser().resolve()
         self.include_user_skills = include_user_skills
         self.extra_roots = tuple(path.expanduser().resolve() for path in extra_roots)
         self.excluded_skill_names = frozenset(excluded_skill_names)
+        self.included_skill_names = (
+            None if included_skill_names is None else frozenset(included_skill_names)
+        )
 
     def skill_roots(self) -> list[Path]:
         """返回可能存放 Skill 的目录；不存在的目录会在扫描时自动忽略。"""
@@ -76,7 +93,12 @@ class SkillLoader:
                 found.update(
                     path.resolve()
                     for path in root.rglob("SKILL.md")
-                    if path.is_file() and path.parent.name not in self.excluded_skill_names
+                    if path.is_file()
+                    and path.parent.name not in self.excluded_skill_names
+                    and (
+                        self.included_skill_names is None
+                        or path.parent.name in self.included_skill_names
+                    )
                 )
         return sorted(found, key=str)
 
@@ -251,11 +273,23 @@ class DeepSeekSkillClient:
                 raw_body = response.read().decode("utf-8")
         except HTTPError as exc:
             error_body = exc.read().decode("utf-8", errors="replace")
-            raise DeepSeekError(f"DeepSeek API 返回 HTTP {exc.code}: {error_body}") from exc
+            raise DeepSeekError(
+                f"DeepSeek API 返回 HTTP {exc.code}: {error_body}",
+                kind="http",
+                status_code=exc.code,
+            ) from exc
         except URLError as exc:
-            raise DeepSeekError(f"无法连接 DeepSeek API：{exc.reason}") from exc
+            reason = exc.reason
+            if isinstance(reason, TimeoutError):
+                raise DeepSeekError("DeepSeek API 请求超时", kind="timeout") from exc
+            network_code = str(getattr(reason, "errno", "") or "")
+            raise DeepSeekError(
+                f"无法连接 DeepSeek API：{reason}",
+                kind="network",
+                network_code=network_code,
+            ) from exc
         except TimeoutError as exc:
-            raise DeepSeekError("DeepSeek API 请求超时") from exc
+            raise DeepSeekError("DeepSeek API 请求超时", kind="timeout") from exc
 
         try:
             result = json.loads(raw_body)

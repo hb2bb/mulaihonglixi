@@ -1,0 +1,1 @@
+{"id": "pa-01-01", "mode": "assessment", "error": "无法连接模型接口：[Errno 8] nodename nor servname provided, or not known", "evaluation": {"passed": false, "score": 0}, "evaluated_at": "2026-08-11T07:12:35.436216+00:00"}

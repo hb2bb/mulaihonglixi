@@ -1,0 +1,18 @@
+{
+  "method": "DeepSeek generation only; all verdicts are primary manual review.",
+  "rounds": {
+    "postfix_v4": {
+      "minor": 13,
+      "pass": 38,
+      "major": 9
+    },
+    "postfix_v5": {
+      "minor": 1,
+      "pass": 11
+    },
+    "postfix_v6": {
+      "pass": 1
+    }
+  },
+  "final_targeted_status": "All v4 major failures were covered by v5 and manually passed. The remaining v5 naturalness minor was fixed and manually passed in v6."
+}

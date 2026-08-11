@@ -7,6 +7,7 @@ node_modules/
 .next/
 dist/
 .wrangler/
+evals/results/
 *.tsbuildinfo
 # 该文件可能包含私人 Skill 内容，只在本机或部署构建时生成。
 lib/skill-bundle.generated.ts

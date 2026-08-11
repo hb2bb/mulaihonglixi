@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RUNTIME_TEXT } from "@/lib/skill-bundle.generated";
+import {
+  AUXILIARY_REQUEST_TIMEOUT_MS,
+  ModelUpstreamError,
+  publicModelFailure,
+} from "@/lib/model-api-error";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -22,7 +27,9 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const globalRateLimit = globalThis as typeof globalThis & {
   flashLabStateRequests?: Map<string, number[]>;
 };
-const requestRecords = (globalRateLimit.flashLabStateRequests ??= new Map());
+const requestRecords: Map<string, number[]> = (
+  globalRateLimit.flashLabStateRequests ??= new Map<string, number[]>()
+);
 
 function clientIdentity(request: NextRequest) {
   return (
@@ -208,12 +215,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "状态模型的 Base URL 或模型名尚未配置。" }, { status: 503 });
   }
   let mood: MoodResult = {
-    mood: "平静",
+    mood: RUNTIME_TEXT.default_mood,
     intensity: 2,
-    reason: "没有足够信息改变状态",
-    behavior: "正常简短地聊天，偶尔轻损一句",
+    reason: RUNTIME_TEXT.default_mood_reason,
+    behavior: RUNTIME_TEXT.default_mood_behavior,
   };
-  let modelOutput = "状态模型未返回有效输出，使用默认心情。";
+  let modelOutput: string = RUNTIME_TEXT.default_mood_debug_output;
+  let degradedReason = "";
 
   try {
     const upstream = await fetch(`${baseUrl}/chat/completions`, {
@@ -241,6 +249,7 @@ export async function POST(request: NextRequest) {
         stream: false,
         max_tokens: 600,
       }),
+      signal: AbortSignal.timeout(AUXILIARY_REQUEST_TIMEOUT_MS),
     });
     if (upstream.ok) {
       const result = (await upstream.json()) as {
@@ -252,9 +261,11 @@ export async function POST(request: NextRequest) {
       if (parsed) mood = parsed;
     } else {
       console.error("DeepSeek state upstream error", upstream.status, await upstream.text());
+      throw new ModelUpstreamError("状态模型", upstream.status);
     }
   } catch (error) {
     console.error("DeepSeek state request failed", error);
+    degradedReason = publicModelFailure(error, "状态模型").message;
   }
 
   const state = [
@@ -270,7 +281,11 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     state,
-    debug: { model, output: modelOutput },
+    debug: {
+      model,
+      output: degradedReason ? `${modelOutput}\n降级原因：${degradedReason}` : modelOutput,
+      degraded: Boolean(degradedReason),
+    },
     updated_at: now.toISOString(),
     expires_at: new Date(now.getTime() + 30 * 60_000).toISOString(),
   });

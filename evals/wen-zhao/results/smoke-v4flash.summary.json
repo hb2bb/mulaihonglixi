@@ -1,0 +1,34 @@
+{
+  "mode": "assessment",
+  "cases": "/Users/didi/Desktop/牧瀬紅莉栖/evals/wen-zhao/personality-assessment.json",
+  "results": "evals/wen-zhao/results/smoke-v4flash.jsonl",
+  "model": "deepseek-v4-flash",
+  "profile": {
+    "request_order": [
+      "persona_system_prompt",
+      "skill_bundle",
+      "web_runtime_prompt",
+      "session_memory_optional",
+      "live_state_optional",
+      "response_guard_prompt",
+      "conversation_messages"
+    ],
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 8192,
+    "timeout_seconds": 150,
+    "stream": false
+  },
+  "summary": {
+    "items": 1,
+    "score": 0.0,
+    "rate": 0.0,
+    "by_facet": {
+      "unknown": {
+        "items": 1,
+        "score": 0.0,
+        "rate": 0.0
+      }
+    }
+  }
+}

@@ -7,7 +7,9 @@ import {
 import handler from "vinext/server/app-router-entry";
 
 interface Env {
-  ASSETS: Fetcher;
+  ASSETS: {
+    fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+  };
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {

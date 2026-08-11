@@ -8,12 +8,16 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from deepseek_skill_client import DeepSeekSkillClient, SkillLoader
+from deepseek_skill_client import DeepSeekError, DeepSeekSkillClient, SkillLoader
 from web_server import (
     RUNTIME_TEXT,
     RateLimiter,
+    build_live_state_with_debug,
+    env_flag,
+    generate_reply,
     generate_reviewed_reply,
     normalize_session_memory,
+    public_deepseek_error,
     update_session_memory,
     validate_messages,
 )
@@ -86,6 +90,26 @@ class SkillLoaderTests(unittest.TestCase):
             self.assertNotIn("第一版", second_system)
             self.assertEqual("deepseek-v4-pro", captured_payloads[1]["model"])
 
+    def test_included_skill_names_loads_only_selected_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            old_skill = root / "skills" / "old-role"
+            new_skill = root / "skills" / "new-role"
+            old_skill.mkdir(parents=True)
+            new_skill.mkdir(parents=True)
+            (old_skill / "SKILL.md").write_text("旧角色规则", encoding="utf-8")
+            (new_skill / "SKILL.md").write_text("新角色规则", encoding="utf-8")
+
+            loader = SkillLoader(
+                root,
+                include_user_skills=False,
+                included_skill_names=("new-role",),
+            )
+            prompt = loader.build_system_prompt()
+
+            self.assertIn("新角色规则", prompt)
+            self.assertNotIn("旧角色规则", prompt)
+
     def test_chat_injects_additional_runtime_messages(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -137,6 +161,38 @@ class SkillLoaderTests(unittest.TestCase):
 
 
 class WebServerTests(unittest.TestCase):
+    def test_public_network_error_is_actionable_without_internal_details(self) -> None:
+        error = DeepSeekError(
+            "包含不应发给访客的底层详情",
+            kind="network",
+            network_code="ECONNRESET",
+        )
+
+        message, status, code = public_deepseek_error(error, "DeepSeek API")
+
+        self.assertEqual(502, status)
+        self.assertEqual("upstream_network_error", code)
+        self.assertIn("ECONNRESET", message)
+        self.assertIn("代理", message)
+        self.assertNotIn("底层详情", message)
+
+    def test_state_fallback_records_the_upstream_failure(self) -> None:
+        class FailingStateClient:
+            def complete(self, messages, max_tokens):  # type: ignore[no-untyped-def]
+                raise DeepSeekError("socket reset", kind="network", network_code="ECONNRESET")
+
+        with patch("web_server.load_weather", return_value=("北京", "晴，20°C")):
+            state, debug = build_live_state_with_debug(
+                FailingStateClient(),  # type: ignore[arg-type]
+                [],
+                "",
+                "",
+            )
+
+        self.assertIn(RUNTIME_TEXT["default_mood"], state)
+        self.assertIn("降级原因", debug)
+        self.assertIn("ECONNRESET", debug)
+
     def test_validates_normal_conversation(self) -> None:
         messages = [{"role": "user", "content": "你好"}]
         self.assertEqual(messages, validate_messages(messages))
@@ -180,6 +236,34 @@ class WebServerTests(unittest.TestCase):
         )
         self.assertEqual("- 用户喜欢推理\n- 不喜欢长回复", memory)
         self.assertEqual(1_200, client.max_tokens)
+
+    def test_review_feature_defaults_to_disabled(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertFalse(env_flag("ENABLE_REPLY_REVIEW"))
+        with patch.dict("os.environ", {"ENABLE_REPLY_REVIEW": "true"}, clear=True):
+            self.assertTrue(env_flag("ENABLE_REPLY_REVIEW"))
+
+    def test_disabled_review_generates_only_one_reply(self) -> None:
+        class FakeChatClient:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def chat(self, messages, **kwargs):  # type: ignore[no-untyped-def]
+                self.calls += 1
+                self.runtime_messages = list(kwargs.get("additional_system_messages", ()))
+                return "单次生成结果"
+
+        client = FakeChatClient()
+        content = generate_reply(
+            client,  # type: ignore[arg-type]
+            [{"role": "user", "content": "你好"}],
+            "- 会话记忆",
+            "当前状态",
+        )
+        self.assertEqual("单次生成结果", content)
+        self.assertEqual(1, client.calls)
+        self.assertTrue(any("会话记忆" in item for item in client.runtime_messages))
+        self.assertTrue(any("当前状态" in item for item in client.runtime_messages))
 
     def test_review_passes_first_candidate_without_regeneration(self) -> None:
         class FakeChatClient:
@@ -247,7 +331,9 @@ class WebServerTests(unittest.TestCase):
 
     def test_runtime_model_text_comes_from_chinese_skill_resource(self) -> None:
         self.assertIn("发送前审查器", RUNTIME_TEXT["review_system_prompt"])
+        self.assertIn("葛城真冬", RUNTIME_TEXT["review_system_prompt"])
         self.assertIn("{candidate}", RUNTIME_TEXT["revision_feedback_template"])
+        self.assertEqual("明快活跃", RUNTIME_TEXT["default_mood"])
 
 
 if __name__ == "__main__":

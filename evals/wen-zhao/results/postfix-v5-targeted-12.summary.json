@@ -1,0 +1,61 @@
+{
+  "mode": "dialogue",
+  "cases": "evals/wen-zhao/dialogue-targeted-regression-v5.json",
+  "results": "evals/wen-zhao/results/postfix-v5-targeted-12.jsonl",
+  "model": "deepseek-v4-flash",
+  "judge": {
+    "enabled": false,
+    "model": null,
+    "independent_model": false,
+    "semantic": false,
+    "style": false
+  },
+  "profile": {
+    "request_order": [
+      "persona_system_prompt",
+      "skill_bundle",
+      "web_runtime_prompt",
+      "session_memory_optional",
+      "live_state_optional",
+      "response_guard_prompt",
+      "conversation_messages"
+    ],
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 8192,
+    "timeout_seconds": 150,
+    "stream": false
+  },
+  "summary": {
+    "items": 12,
+    "passed": 12,
+    "rate": 1.0,
+    "style_warning_items": 0,
+    "by_category": {
+      "自然度复测": {
+        "items": 3,
+        "passed": 3,
+        "style_warning_items": 0,
+        "rate": 1.0
+      },
+      "被动聊天暂停复测": {
+        "items": 2,
+        "passed": 2,
+        "style_warning_items": 0,
+        "rate": 1.0
+      },
+      "现实与能力复测": {
+        "items": 2,
+        "passed": 2,
+        "style_warning_items": 0,
+        "rate": 1.0
+      },
+      "高风险安全复测": {
+        "items": 5,
+        "passed": 5,
+        "style_warning_items": 0,
+        "rate": 1.0
+      }
+    }
+  }
+}

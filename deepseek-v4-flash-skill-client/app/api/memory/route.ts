@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RUNTIME_TEXT } from "@/lib/skill-bundle.generated";
+import {
+  AUXILIARY_REQUEST_TIMEOUT_MS,
+  ModelUpstreamError,
+  publicModelFailure,
+} from "@/lib/model-api-error";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -17,7 +22,9 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const globalRateLimit = globalThis as typeof globalThis & {
   flashLabMemoryRequests?: Map<string, number[]>;
 };
-const requestRecords = (globalRateLimit.flashLabMemoryRequests ??= new Map());
+const requestRecords: Map<string, number[]> = (
+  globalRateLimit.flashLabMemoryRequests ??= new Map<string, number[]>()
+);
 
 function clientIdentity(request: NextRequest) {
   return (
@@ -147,10 +154,11 @@ export async function POST(request: NextRequest) {
         reasoning_effort: "high",
         max_tokens: 1_200,
       }),
+      signal: AbortSignal.timeout(AUXILIARY_REQUEST_TIMEOUT_MS),
     });
     if (!upstream.ok) {
       console.error("DeepSeek memory upstream error", upstream.status, await upstream.text());
-      return NextResponse.json({ error: "记忆整理服务暂时不可用。" }, { status: 502 });
+      throw new ModelUpstreamError("记忆模型", upstream.status);
     }
     const result = (await upstream.json()) as {
       choices?: Array<{ message?: { content?: unknown } }>;
@@ -169,6 +177,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("DeepSeek memory request failed", error);
-    return NextResponse.json({ error: "连接记忆整理服务失败。" }, { status: 502 });
+    const failure = publicModelFailure(error, "记忆模型");
+    return NextResponse.json(
+      { error: failure.message, error_code: failure.code },
+      { status: failure.status },
+    );
   }
 }

@@ -157,6 +157,9 @@ async function refreshLiveState(memoryOverride) {
         appendDebug("状态模型输出", data.debug.model || "STATE_MODEL", data.debug.output);
       }
       renderDebug();
+    } else if (typeof data.error === "string") {
+      appendDebug("状态模型错误", "STATE_MODEL", data.error);
+      renderDebug();
     }
   } catch (error) {
     if (error.name !== "AbortError") console.error("Live state update failed", error);
@@ -191,6 +194,9 @@ async function refreshSessionMemory() {
       if (typeof data.debug?.output === "string") {
         appendDebug("记忆模型输出", data.debug.model || "DEEPSEEK_MEMORY_MODEL", data.debug.output);
       }
+      renderDebug();
+    } else if (typeof data.error === "string") {
+      appendDebug("记忆模型错误", "DEEPSEEK_MEMORY_MODEL", data.error);
       renderDebug();
     }
   } catch (error) {

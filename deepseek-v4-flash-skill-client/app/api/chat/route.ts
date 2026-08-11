@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RUNTIME_TEXT, SKILL_BUNDLE } from "@/lib/skill-bundle.generated";
+import {
+  CHAT_REQUEST_TIMEOUT_MS,
+  ModelUpstreamError,
+  publicModelFailure,
+} from "@/lib/model-api-error";
+import { applyLocalReplyGuard } from "@/lib/reply-guard";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -31,7 +37,14 @@ function renderRuntimeText(template: string, values: Record<string, string>) {
 const globalRateLimit = globalThis as typeof globalThis & {
   flashLabRequests?: Map<string, number[]>;
 };
-const requestRecords = (globalRateLimit.flashLabRequests ??= new Map());
+const requestRecords: Map<string, number[]> = (
+  globalRateLimit.flashLabRequests ??= new Map<string, number[]>()
+);
+
+function envFlag(value: string | undefined, defaultValue = false) {
+  if (value === undefined) return defaultValue;
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+}
 
 function clientIdentity(request: NextRequest) {
   return (
@@ -122,10 +135,11 @@ async function callCompatibleModel(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ model, messages, stream: false, max_tokens: maxTokens }),
+    signal: AbortSignal.timeout(CHAT_REQUEST_TIMEOUT_MS),
   });
   if (!upstream.ok) {
     console.error("Reply review upstream error", upstream.status, await upstream.text());
-    throw new Error(`review upstream HTTP ${upstream.status}`);
+    throw new ModelUpstreamError("回复审查模型", upstream.status);
   }
   const result = (await upstream.json()) as {
     choices?: Array<{ message?: { content?: unknown } }>;
@@ -213,12 +227,14 @@ async function selectCandidate(
 }
 
 export async function GET() {
+  const reviewEnabled = envFlag(process.env.ENABLE_REPLY_REVIEW);
   return NextResponse.json({
     ready: Boolean(process.env.DEEPSEEK_API_KEY),
     state_ready: Boolean(
       process.env.STATE_API_KEY && process.env.STATE_BASE_URL && process.env.STATE_MODEL,
     ),
-    review_ready: Boolean(
+    review_enabled: reviewEnabled,
+    review_ready: !reviewEnabled || Boolean(
       process.env.REVIEW_API_KEY && process.env.REVIEW_BASE_URL && process.env.REVIEW_MODEL,
     ),
     access_key_required: Boolean(process.env.SITE_ACCESS_KEY),
@@ -236,7 +252,8 @@ export async function POST(request: NextRequest) {
   const reviewApiKey = process.env.REVIEW_API_KEY;
   const reviewBaseUrl = (process.env.REVIEW_BASE_URL || "").replace(/\/$/, "");
   const reviewModel = process.env.REVIEW_MODEL || "";
-  if (!reviewApiKey || !reviewBaseUrl || !reviewModel) {
+  const reviewEnabled = envFlag(process.env.ENABLE_REPLY_REVIEW);
+  if (reviewEnabled && (!reviewApiKey || !reviewBaseUrl || !reviewModel)) {
     return NextResponse.json(
       { error: "回复审查模型的 API Key、Base URL 或模型名尚未配置。" },
       { status: 503 },
@@ -302,6 +319,7 @@ export async function POST(request: NextRequest) {
           },
         ]
       : []),
+    { role: "system" as const, content: RUNTIME_TEXT.response_guard_prompt },
     ...messages,
   ];
 
@@ -333,12 +351,13 @@ export async function POST(request: NextRequest) {
         reasoning_effort: "high",
         max_tokens: 8_192,
       }),
+      signal: AbortSignal.timeout(CHAT_REQUEST_TIMEOUT_MS),
     });
 
     if (!upstream.ok) {
       // 不把上游响应体返回给访客，避免意外泄露服务端信息。
       console.error("DeepSeek upstream error", upstream.status, await upstream.text());
-      throw new Error(`generation upstream HTTP ${upstream.status}`);
+      throw new ModelUpstreamError("DeepSeek API", upstream.status);
     }
 
     const result = (await upstream.json()) as {
@@ -352,6 +371,24 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    if (!reviewEnabled) {
+      const candidate = await generateCandidate();
+      const guarded = applyLocalReplyGuard(messages, candidate);
+      return NextResponse.json({
+        content: guarded.content,
+        debug: {
+          models: { chat: model, review: "" },
+          candidates: [{ attempt: 1, output: candidate }],
+          selected_attempt: 1,
+          selector_output: "",
+          review_enabled: false,
+          local_guard: { applied: guarded.applied, rule: guarded.rule },
+        },
+      });
+    }
+    if (!reviewApiKey || !reviewBaseUrl || !reviewModel) {
+      throw new Error("review configuration unexpectedly missing");
+    }
     const reviewConfig = { baseUrl: reviewBaseUrl, apiKey: reviewApiKey, model: reviewModel };
     const candidates: string[] = [];
     const reviews: ReviewResult[] = [];
@@ -368,8 +405,9 @@ export async function POST(request: NextRequest) {
       candidates.push(candidate);
       reviews.push(review);
       if (review.approved) {
+        const guarded = applyLocalReplyGuard(messages, candidate);
         return NextResponse.json({
-          content: candidate,
+          content: guarded.content,
           debug: {
             models: { chat: model, review: reviewModel },
             candidates: candidates.map((output, index) => ({
@@ -379,6 +417,7 @@ export async function POST(request: NextRequest) {
             })),
             selected_attempt: attempt + 1,
             selector_output: "",
+            local_guard: { applied: guarded.applied, rule: guarded.rule },
           },
         });
       }
@@ -395,8 +434,9 @@ export async function POST(request: NextRequest) {
       candidates,
       reviews,
     );
+    const guardedSelection = applyLocalReplyGuard(messages, selection.content);
     return NextResponse.json({
-      content: selection.content,
+      content: guardedSelection.content,
       debug: {
         models: { chat: model, review: reviewModel },
         candidates: candidates.map((output, index) => ({
@@ -406,10 +446,18 @@ export async function POST(request: NextRequest) {
         })),
         selected_attempt: selection.selected,
         selector_output: selection.raw,
+        local_guard: {
+          applied: guardedSelection.applied,
+          rule: guardedSelection.rule,
+        },
       },
     });
   } catch (error) {
-    console.error("Reviewed chat request failed", error);
-    return NextResponse.json({ error: "回复生成或发送前审查失败，请稍后重试。" }, { status: 502 });
+    console.error("Chat request failed", error);
+    const failure = publicModelFailure(error, "DeepSeek API");
+    return NextResponse.json(
+      { error: failure.message, error_code: failure.code },
+      { status: failure.status },
+    );
   }
 }
