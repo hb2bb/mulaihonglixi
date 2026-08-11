@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "id": "ning-zhixia",
+  "character_name": "宁知夏",
+  "skill": "skills/cangzhou-code-companion",
+  "datasets": {
+    "core": "evals/shared/datasets/dialogue-core.json"
+  },
+  "output_dir": "evals/ning-zhixia/results",
+  "forbidden_speaker_prefixes": ["宁知夏", "知夏", "小夏"]
+}

@@ -1,0 +1,206 @@
+{
+  "passed": true,
+  "errors": [],
+  "profiles": {
+    "mafuyu": {
+      "character_name": "葛城真冬",
+      "skill": "skills/love69-mafuyu-companion",
+      "datasets": [
+        "core"
+      ]
+    },
+    "ning-zhixia": {
+      "character_name": "宁知夏",
+      "skill": "skills/cangzhou-code-companion",
+      "datasets": [
+        "core"
+      ]
+    },
+    "shen-tingyu": {
+      "character_name": "沈听雨",
+      "skill": "skills/shen-tingyu-girlfriend",
+      "datasets": [
+        "assessment",
+        "core"
+      ]
+    },
+    "wen-zhao": {
+      "character_name": "闻昭",
+      "skill": "skills/wen-zhao-girlfriend",
+      "datasets": [
+        "assessment",
+        "core",
+        "dialogue",
+        "regression"
+      ]
+    }
+  },
+  "datasets": {
+    "evals/shared/datasets/dialogue-core.json": {
+      "mode": "core",
+      "items": 102,
+      "categories": 16,
+      "items_per_category": {
+        "identity": 8,
+        "short": 8,
+        "fact": 10,
+        "emotion": 10,
+        "positive": 6,
+        "boundary": 8,
+        "memory": 6,
+        "practical": 8,
+        "safety": 6,
+        "consistency": 5,
+        "hallucination": 5,
+        "tone": 5,
+        "multi_turn": 5,
+        "humor": 4,
+        "fallback": 4,
+        "format": 4
+      },
+      "single_turn": 85,
+      "multi_turn": 17,
+      "expanded_cases": 0,
+      "stress_tag_distribution": {},
+      "history_length_distribution": {
+        "0": 102
+      },
+      "long_context_cases": 0,
+      "exact_duplicate_dialogues": 0
+    },
+    "evals/shen-tingyu/datasets/personality-assessment.json": {
+      "mode": "assessment",
+      "items": 16,
+      "facets": 12,
+      "items_per_facet": {
+        "低风险探索": 2,
+        "陌生社交": 2,
+        "亲密社交": 2,
+        "危机中的暂时稳定": 1,
+        "危机后的迟发反应": 1,
+        "一般证据更新": 2,
+        "自主与关心": 1,
+        "承诺责任": 1,
+        "亲近与独立": 1,
+        "关系威胁": 1,
+        "准确浪漫": 1,
+        "事实与感受双轨校准": 1
+      },
+      "best_letter_distribution": {
+        "A": 4,
+        "D": 4,
+        "C": 4,
+        "B": 4
+      },
+      "average_best_option_chars": 15.44,
+      "average_other_option_chars": 14.81,
+      "exact_duplicate_scenarios": 0
+    },
+    "evals/wen-zhao/datasets/personality-assessment.json": {
+      "mode": "assessment",
+      "items": 260,
+      "facets": 26,
+      "items_per_facet": {
+        "低风险探索": 10,
+        "高风险探索": 10,
+        "重要事项的计划与收尾": 10,
+        "日常灵活性": 10,
+        "陌生社交": 10,
+        "亲密关系中的社交节奏": 10,
+        "有边界的合作": 10,
+        "重复越界后的合作撤回": 10,
+        "危机中的暂时稳定": 10,
+        "危机后的迟发反应": 10,
+        "一般证据更新": 10,
+        "高自我威胁下的核实": 10,
+        "含糊与真实表达": 10,
+        "关心与自主": 10,
+        "承诺与责任": 10,
+        "偏爱与公平": 10,
+        "亲近与独立并存": 10,
+        "关系威胁下的澄清": 10,
+        "低强度冲突合作": 10,
+        "高唤醒暂停与返回": 10,
+        "陪伴与解决的选择": 10,
+        "嫉妒与边界": 10,
+        "准确而不可替换的浪漫": 10,
+        "事实与感受双轨校准": 10,
+        "控制行为的自我修复": 10,
+        "具体承诺高于宏大保证": 10
+      },
+      "best_letter_distribution": {
+        "C": 65,
+        "B": 66,
+        "A": 65,
+        "D": 64
+      },
+      "average_best_option_chars": 32.15,
+      "average_other_option_chars": 21.68,
+      "exact_duplicate_scenarios": 0
+    },
+    "evals/wen-zhao/datasets/dialogue-scenarios.json": {
+      "mode": "dialogue",
+      "items": 260,
+      "categories": 26,
+      "items_per_category": {
+        "低信息消息": 10,
+        "普通事实与禁止脑补": 10,
+        "好消息": 10,
+        "轻松日常": 10,
+        "情绪倾听": 10,
+        "倾听还是建议": 10,
+        "用户边界": 10,
+        "温柔亲密": 10,
+        "准确浪漫": 10,
+        "轻度调情": 10,
+        "嫉妒与边界": 10,
+        "低强度冲突": 10,
+        "高强度冲突与暂停": 10,
+        "道歉与修复": 10,
+        "关心与控制": 10,
+        "证据更新": 10,
+        "事实与感受双轨": 10,
+        "含糊与真实": 10,
+        "急性危机": 10,
+        "危机后的情绪": 10,
+        "知识与能力边界": 10,
+        "多轮记忆连续性": 10,
+        "现实与身份边界": 10,
+        "纯聊天输出对抗": 10,
+        "人物独特机制": 10,
+        "高风险安全": 10
+      },
+      "single_turn": 247,
+      "multi_turn": 13,
+      "expanded_cases": 0,
+      "stress_tag_distribution": {},
+      "history_length_distribution": {
+        "0": 260
+      },
+      "long_context_cases": 0,
+      "exact_duplicate_dialogues": 0
+    },
+    "evals/wen-zhao/datasets/dialogue-targeted-regression-v6.json": {
+      "mode": "regression",
+      "items": 1,
+      "categories": 1,
+      "items_per_category": {
+        "自然度最终复测": 1
+      },
+      "single_turn": 1,
+      "multi_turn": 0,
+      "expanded_cases": 0,
+      "stress_tag_distribution": {},
+      "history_length_distribution": {
+        "0": 1
+      },
+      "long_context_cases": 0,
+      "exact_duplicate_dialogues": 0
+    }
+  },
+  "interpretation_limits": [
+    "这是Skill回归集，不是具有常模、信效度和临床解释力的心理量表。",
+    "选择题容易受到选项社会赞许度和长度线索影响，必须与自由对话结果联合解释。",
+    "语义评审模型可能有自身偏差，失败项需要查看原始回复后再决定是否修改Skill。"
+  ]
+}

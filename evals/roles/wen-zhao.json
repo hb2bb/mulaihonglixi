@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "wen-zhao",
+  "character_name": "闻昭",
+  "skill": "skills/wen-zhao-girlfriend",
+  "datasets": {
+    "core": "evals/shared/datasets/dialogue-core.json",
+    "assessment": "evals/wen-zhao/datasets/personality-assessment.json",
+    "dialogue": "evals/wen-zhao/datasets/dialogue-scenarios.json",
+    "regression": "evals/wen-zhao/datasets/dialogue-targeted-regression-v6.json"
+  },
+  "output_dir": "evals/wen-zhao/results",
+  "forbidden_speaker_prefixes": ["闻昭", "女友"]
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "mafuyu",
+  "character_name": "葛城真冬",
+  "skill": "skills/love69-mafuyu-companion",
+  "datasets": {
+    "core": "evals/shared/datasets/dialogue-core.json"
+  },
+  "output_dir": "evals/mafuyu/results",
+  "template_vars": {
+    "character_name": "真冬"
+  },
+  "forbidden_speaker_prefixes": ["真冬", "葛城真冬", "妹妹"]
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "shen-tingyu",
+  "character_name": "沈听雨",
+  "skill": "skills/shen-tingyu-girlfriend",
+  "datasets": {
+    "core": "evals/shared/datasets/dialogue-core.json",
+    "assessment": "evals/shen-tingyu/datasets/personality-assessment.json"
+  },
+  "output_dir": "evals/shen-tingyu/results",
+  "forbidden_speaker_prefixes": ["沈听雨", "女友"]
+}

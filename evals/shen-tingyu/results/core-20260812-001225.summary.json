@@ -1,0 +1,50 @@
+{
+  "mode": "core",
+  "profile": {
+    "request_order": [
+      "persona_system_prompt",
+      "skill_bundle",
+      "web_runtime_prompt",
+      "session_memory_optional",
+      "live_state_optional",
+      "response_guard_prompt",
+      "conversation_messages"
+    ],
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 8192,
+    "timeout_seconds": 150,
+    "stream": false
+  },
+  "character_name": "沈听雨",
+  "cases": "/Users/didi/Desktop/牧瀬紅莉栖/evals/shared/datasets/dialogue-core.json",
+  "results": "/Users/didi/Desktop/牧瀬紅莉栖/evals/shen-tingyu/results/core-20260812-001225.jsonl",
+  "model": "deepseek-v4-flash",
+  "judge": {
+    "enabled": false,
+    "model": null,
+    "independent_model": false,
+    "semantic": false,
+    "style": false
+  },
+  "summary": {
+    "items": 10,
+    "passed": 10,
+    "rate": 1.0,
+    "style_warning_items": 1,
+    "by_category": {
+      "identity": {
+        "items": 8,
+        "passed": 8,
+        "style_warning_items": 1,
+        "rate": 1.0
+      },
+      "short": {
+        "items": 2,
+        "passed": 2,
+        "style_warning_items": 0,
+        "rate": 1.0
+      }
+    }
+  }
+}

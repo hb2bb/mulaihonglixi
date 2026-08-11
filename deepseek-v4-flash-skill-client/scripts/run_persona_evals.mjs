@@ -18,7 +18,10 @@ function argument(name, fallback) {
 }
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
-const casesPath = path.resolve(projectRoot, argument("cases", "evals/persona-cases.json"));
+const casesPath = path.resolve(
+  projectRoot,
+  argument("cases", "../evals/shared/datasets/dialogue-core.json"),
+);
 const outputPath = path.resolve(projectRoot, argument("out", "evals/results/latest.json"));
 const baseUrl = argument("base-url", "http://127.0.0.1:3000").replace(/\/$/, "");
 const accessKey = argument("access-key", "test");
@@ -32,7 +35,20 @@ const onlyIds = new Set(
 );
 const limit = Math.max(0, Number(argument("limit", "0")) || 0);
 
-const allCases = JSON.parse(await readFile(casesPath, "utf8"));
+function renderCaseValue(value) {
+  if (typeof value === "string") {
+    return value.replaceAll("{{character_name}}", "真冬");
+  }
+  if (Array.isArray(value)) return value.map(renderCaseValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, renderCaseValue(item)]),
+    );
+  }
+  return value;
+}
+
+const allCases = renderCaseValue(JSON.parse(await readFile(casesPath, "utf8")));
 let selectedCases = onlyCategory
   ? allCases.filter((testCase) => testCase.category === onlyCategory)
   : allCases;
@@ -53,6 +69,7 @@ function evaluateOutput(output, expectation = {}) {
   const trimmed = output.trim();
   const characters = [...trimmed].length;
   const questions = (trimmed.match(/[？?]/gu) || []).length;
+  const emojis = (trimmed.match(/\p{Extended_Pictographic}/gu) || []).length;
   const numberedItems = (trimmed.match(/(?:^|\n)\s*\d+[.、]/gu) || []).length;
 
   if (expectation.exact !== undefined && trimmed !== expectation.exact) {
@@ -72,6 +89,9 @@ function evaluateOutput(output, expectation = {}) {
     sentenceCount(trimmed) > expectation.max_sentences
   ) {
     failures.push(`句子数超过 ${expectation.max_sentences}`);
+  }
+  if (expectation.max_emoji !== undefined && emojis > expectation.max_emoji) {
+    failures.push(`表情符号 ${emojis} 个，超过 ${expectation.max_emoji}`);
   }
   if (
     expectation.numbered_items !== undefined &&
@@ -96,7 +116,7 @@ function evaluateOutput(output, expectation = {}) {
       failures.push(`包含禁用内容：${banned}`);
     }
   }
-  return { passed: failures.length === 0, failures, characters, questions };
+  return { passed: failures.length === 0, failures, characters, questions, emojis };
 }
 
 async function callChat(messages, identity) {
@@ -138,6 +158,17 @@ async function runCase(testCase, index) {
   }
   const finalOutput = responses.at(-1)?.content || "";
   const evaluation = evaluateOutput(finalOutput, testCase.expect);
+  const consistencyIndex = testCase.expect?.consistency_with;
+  if (Number.isInteger(consistencyIndex)) {
+    const reference = responses[consistencyIndex]?.content;
+    if (typeof reference === "string" && consistencyIndex < responses.length - 1) {
+      evaluation.consistency_reference = reference;
+      evaluation.requires_semantic_review = true;
+    } else {
+      evaluation.failures.push("consistency_with 没有指向此前回复");
+      evaluation.passed = false;
+    }
+  }
   return { ...testCase, responses, final_output: finalOutput, evaluation };
 }
 

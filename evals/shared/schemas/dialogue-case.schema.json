@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dialogue-case.schema.json",
+  "title": "通用角色对话评估用例",
+  "type": "object",
+  "required": ["id", "category", "turns", "expect"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "category": {"type": "string", "minLength": 1},
+    "turns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {"enum": ["user", "assistant"]},
+          "content": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "memory": {"type": "string"},
+    "live_state": {"type": "string"},
+    "expect": {
+      "type": "object",
+      "properties": {
+        "exact": {"type": "string"},
+        "max_chars": {"type": "integer", "minimum": 0},
+        "min_chars": {"type": "integer", "minimum": 0},
+        "max_questions": {"type": "integer", "minimum": 0},
+        "max_sentences": {"type": "integer", "minimum": 0},
+        "max_emoji": {"type": "integer", "minimum": 0},
+        "consistency_with": {"type": "integer", "minimum": 0},
+        "numbered_items": {"type": "integer", "minimum": 0},
+        "must_include_all": {"type": "array", "items": {"type": "string"}},
+        "must_include_any": {"type": "array", "items": {"type": "string"}},
+        "must_not_include": {"type": "array", "items": {"type": "string"}},
+        "forbid_unverified_long_numbers": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "semantic_expect": {
+      "type": "object",
+      "properties": {
+        "must_demonstrate": {"type": "array", "items": {"type": "string"}},
+        "must_avoid": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "stress_tags": {"type": "array", "items": {"type": "string"}},
+    "regression_of": {"type": "string"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "role-profile.schema.json",
+  "title": "角色评估 Profile",
+  "type": "object",
+  "required": ["schema_version", "id", "character_name", "skill", "datasets"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+    "character_name": {"type": "string", "minLength": 1},
+    "skill": {"type": "string", "minLength": 1},
+    "datasets": {
+      "type": "object",
+      "required": ["core"],
+      "properties": {
+        "core": {"const": "evals/shared/datasets/dialogue-core.json"},
+        "assessment": {"type": "string"},
+        "dialogue": {"type": "string"},
+        "regression": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "output_dir": {"type": "string"},
+    "template_vars": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    },
+    "forbidden_speaker_prefixes": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

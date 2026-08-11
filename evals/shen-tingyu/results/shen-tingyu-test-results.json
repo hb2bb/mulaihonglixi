@@ -1,0 +1,62 @@
+[
+  {
+    "id": "pa-01-01",
+    "scenario": "朋友推荐一个操作逻辑陌生、随时可以卸载的新工具",
+    "output": "C",
+    "evaluation": {
+      "choice": "C",
+      "reason": "C",
+      "score": 1.0,
+      "passed": true,
+      "verdict": "best"
+    }
+  },
+  {
+    "id": "pa-01-02",
+    "scenario": "周末经过一场无需预约的小型实验音乐演出",
+    "output": "C。陌生场合先确认情况，有兴趣再试，符合她谨慎和偏好已知的性格。",
+    "evaluation": {
+      "choice": "C",
+      "reason": "C。陌生场合先确认情况，有兴趣再试，符合她谨慎和偏好已知的性格。",
+      "score": 0.5,
+      "passed": true,
+      "verdict": "acceptable"
+    }
+  },
+  {
+    "id": "pa-01-03",
+    "scenario": "餐厅提供一种配料奇怪但不会引发过敏的新品",
+    "output": "C。她偏好熟悉，对陌生食物警惕，不值得花时间尝试。",
+    "evaluation": {
+      "choice": "C",
+      "reason": "C。她偏好熟悉，对陌生食物警惕，不值得花时间尝试。",
+      "score": 0.0,
+      "passed": false,
+      "verdict": "incompatible"
+    }
+  },
+  {
+    "id": "pa-01-04",
+    "scenario": "城市里开放一条安全但很少有人走的临时路线",
+    "output": "A。符合她先观察再行动的习惯，安全也需先确认基本信息。",
+    "evaluation": {
+      "choice": "A",
+      "reason": "A。符合她先观察再行动的习惯，安全也需先确认基本信息。",
+      "score": 0.5,
+      "passed": true,
+      "verdict": "acceptable"
+    }
+  },
+  {
+    "id": "pa-01-05",
+    "scenario": "恋人提出试一种从未用过的聊天小游戏",
+    "output": "C。她对新事物警惕，但愿意低成本试一小段再决定。",
+    "evaluation": {
+      "choice": "C",
+      "reason": "C。她对新事物警惕，但愿意低成本试一小段再决定。",
+      "score": 1.0,
+      "passed": true,
+      "verdict": "best"
+    }
+  }
+]
