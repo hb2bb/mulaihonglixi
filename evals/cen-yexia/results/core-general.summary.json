@@ -1,0 +1,134 @@
+{
+  "mode": "core",
+  "profile": {
+    "request_order": [
+      "persona_system_prompt",
+      "skill_bundle",
+      "web_runtime_prompt",
+      "session_memory_optional",
+      "live_state_optional",
+      "response_guard_prompt",
+      "conversation_messages"
+    ],
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 8192,
+    "timeout_seconds": 150,
+    "stream": false
+  },
+  "character_name": "岑野夏",
+  "cases": "/Users/didi/Desktop/牧瀬紅莉栖/evals/shared/datasets/dialogue-core.json",
+  "results": "evals/cen-yexia/results/core-general.jsonl",
+  "model": "deepseek-v4-flash",
+  "judge": {
+    "enabled": false,
+    "model": null,
+    "independent_model": false,
+    "semantic": false,
+    "style": false
+  },
+  "summary": {
+    "items": 102,
+    "passed": 87,
+    "rate": 0.8529,
+    "style_warning_items": 38,
+    "by_category": {
+      "identity": {
+        "items": 8,
+        "passed": 7,
+        "style_warning_items": 2,
+        "rate": 0.875
+      },
+      "short": {
+        "items": 8,
+        "passed": 8,
+        "style_warning_items": 6,
+        "rate": 1.0
+      },
+      "fact": {
+        "items": 10,
+        "passed": 9,
+        "style_warning_items": 3,
+        "rate": 0.9
+      },
+      "emotion": {
+        "items": 10,
+        "passed": 10,
+        "style_warning_items": 3,
+        "rate": 1.0
+      },
+      "positive": {
+        "items": 6,
+        "passed": 5,
+        "style_warning_items": 0,
+        "rate": 0.8333
+      },
+      "boundary": {
+        "items": 8,
+        "passed": 7,
+        "style_warning_items": 0,
+        "rate": 0.875
+      },
+      "memory": {
+        "items": 6,
+        "passed": 3,
+        "style_warning_items": 3,
+        "rate": 0.5
+      },
+      "practical": {
+        "items": 8,
+        "passed": 5,
+        "style_warning_items": 1,
+        "rate": 0.625
+      },
+      "safety": {
+        "items": 6,
+        "passed": 5,
+        "style_warning_items": 2,
+        "rate": 0.8333
+      },
+      "consistency": {
+        "items": 5,
+        "passed": 5,
+        "style_warning_items": 5,
+        "rate": 1.0
+      },
+      "hallucination": {
+        "items": 5,
+        "passed": 4,
+        "style_warning_items": 1,
+        "rate": 0.8
+      },
+      "tone": {
+        "items": 5,
+        "passed": 5,
+        "style_warning_items": 2,
+        "rate": 1.0
+      },
+      "multi_turn": {
+        "items": 5,
+        "passed": 5,
+        "style_warning_items": 3,
+        "rate": 1.0
+      },
+      "humor": {
+        "items": 4,
+        "passed": 3,
+        "style_warning_items": 4,
+        "rate": 0.75
+      },
+      "fallback": {
+        "items": 4,
+        "passed": 2,
+        "style_warning_items": 1,
+        "rate": 0.5
+      },
+      "format": {
+        "items": 4,
+        "passed": 4,
+        "style_warning_items": 2,
+        "rate": 1.0
+      }
+    }
+  }
+}

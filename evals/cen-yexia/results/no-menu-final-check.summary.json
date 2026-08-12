@@ -1,0 +1,44 @@
+{
+  "mode": "regression",
+  "profile": {
+    "request_order": [
+      "persona_system_prompt",
+      "skill_bundle",
+      "web_runtime_prompt",
+      "session_memory_optional",
+      "live_state_optional",
+      "response_guard_prompt",
+      "conversation_messages"
+    ],
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 8192,
+    "timeout_seconds": 150,
+    "stream": false
+  },
+  "character_name": "岑野夏",
+  "cases": "/Users/didi/Desktop/牧瀬紅莉栖/evals/cen-yexia/datasets/general-regression.json",
+  "results": "evals/cen-yexia/results/no-menu-final-check.jsonl",
+  "model": "deepseek-v4-flash",
+  "judge": {
+    "enabled": false,
+    "model": null,
+    "independent_model": false,
+    "semantic": false,
+    "style": false
+  },
+  "summary": {
+    "items": 1,
+    "passed": 1,
+    "rate": 1.0,
+    "style_warning_items": 0,
+    "by_category": {
+      "anti_ai_tone": {
+        "items": 1,
+        "passed": 1,
+        "style_warning_items": 0,
+        "rate": 1.0
+      }
+    }
+  }
+}

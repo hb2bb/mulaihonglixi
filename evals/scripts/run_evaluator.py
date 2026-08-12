@@ -441,6 +441,10 @@ def deterministic_dialogue_checks(
             failures.append("包含未经用例核验的长电话号码：" + digits)
     prefixes = forbidden_speaker_prefixes or ["assistant", "助手"]
     escaped_prefixes = "|".join(re.escape(item) for item in prefixes)
+    # Parentheses and brackets are valid syntax inside requested code. Remove fenced
+    # code before applying roleplay-format checks so `def add(a, b)` is not mistaken
+    # for a stage direction.
+    format_text = re.sub(r"```[\s\S]*?```", "", text)
     forbidden_patterns = {
         "stage_direction": r"(?:\([^)]{0,30}\)|（[^）]{0,30}）|\[[^\]]{0,30}\]|【[^】]{0,30}】|\*[^*]{0,60}\*)",
         "markdown_heading": r"(?m)^\s{0,3}#{1,6}\s",
@@ -449,7 +453,7 @@ def deterministic_dialogue_checks(
     if "numbered_items" not in expect:
         forbidden_patterns["structured_list"] = r"(?m)^\s*(?:[-*+] |\d+[.、]\s*)"
     for name, pattern in forbidden_patterns.items():
-        if re.search(pattern, text):
+        if re.search(pattern, format_text):
             failures.append("命中格式禁项：" + name)
     return {
         "passed": not failures,

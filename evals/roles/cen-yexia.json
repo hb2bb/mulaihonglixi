@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "cen-yexia",
+  "character_name": "岑野夏",
+  "skill": "skills/cen-yexia-girlfriend",
+  "datasets": {
+    "core": "evals/shared/datasets/dialogue-core.json",
+    "regression": "evals/cen-yexia/datasets/general-regression.json"
+  },
+  "output_dir": "evals/cen-yexia/results",
+  "forbidden_speaker_prefixes": ["岑野夏", "野夏", "女友"]
+}

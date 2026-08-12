@@ -2,6 +2,14 @@
   "passed": true,
   "errors": [],
   "profiles": {
+    "cen-yexia": {
+      "character_name": "岑野夏",
+      "skill": "skills/cen-yexia-girlfriend",
+      "datasets": [
+        "core",
+        "regression"
+      ]
+    },
     "mafuyu": {
       "character_name": "葛城真冬",
       "skill": "skills/love69-mafuyu-companion",
@@ -64,6 +72,33 @@
       "stress_tag_distribution": {},
       "history_length_distribution": {
         "0": 102
+      },
+      "long_context_cases": 0,
+      "exact_duplicate_dialogues": 0
+    },
+    "evals/cen-yexia/datasets/general-regression.json": {
+      "mode": "regression",
+      "items": 33,
+      "categories": 11,
+      "items_per_category": {
+        "low_information": 3,
+        "boundary": 2,
+        "exact_instruction": 3,
+        "practical": 2,
+        "identity_gate": 4,
+        "memory": 2,
+        "positive": 2,
+        "anti_ai_tone": 6,
+        "fallback": 2,
+        "relationship": 3,
+        "fact_fidelity": 4
+      },
+      "single_turn": 31,
+      "multi_turn": 2,
+      "expanded_cases": 0,
+      "stress_tag_distribution": {},
+      "history_length_distribution": {
+        "0": 33
       },
       "long_context_cases": 0,
       "exact_duplicate_dialogues": 0
