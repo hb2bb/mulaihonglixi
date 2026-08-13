@@ -71,7 +71,14 @@ def load_env_file(path: Path) -> None:
 
 
 class SkillLoader:
-    """Load one self-contained skill and its Markdown references."""
+    """Load one Skill plus every Markdown file under its references directory.
+
+    Evaluation intentionally uses a complete, deterministic snapshot of the
+    selected Skill.  Reference files are therefore loaded even when SKILL.md
+    does not link to them.  Markdown links are still followed so a Skill may
+    keep additional Markdown beside SKILL.md, while directory-boundary and
+    duplicate protections remain in force.
+    """
 
     def __init__(self, skill_directory: Path) -> None:
         self.skill_directory = skill_directory.resolve()
@@ -82,6 +89,14 @@ class SkillLoader:
             raise FileNotFoundError(f"缺少 Skill 入口：{entry}")
         loaded: dict[Path, str] = {}
         self._load_recursive(entry, loaded)
+
+        references = self.skill_directory / "references"
+        if references.exists() and not references.is_dir():
+            raise NotADirectoryError(f"Skill references 不是目录：{references}")
+        if references.is_dir():
+            for reference in sorted(references.rglob("*.md"), key=str):
+                if reference.is_file():
+                    self._load_recursive(reference, loaded)
         return list(loaded.items())
 
     def _load_recursive(self, path: Path, loaded: dict[Path, str]) -> None:

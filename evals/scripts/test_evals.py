@@ -3,12 +3,32 @@
 
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 
 import run_evaluator
 
 
 class SharedEvaluationTests(unittest.TestCase):
+    def test_skill_loader_always_loads_all_markdown_references(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            skill = (Path(temp_dir) / "example-skill").resolve()
+            nested = skill / "references" / "nested"
+            nested.mkdir(parents=True)
+            (skill / "SKILL.md").write_text("# Entry\n", encoding="utf-8")
+            (skill / "references" / "a.md").write_text("# A\n", encoding="utf-8")
+            (nested / "b.md").write_text("# B\n", encoding="utf-8")
+            (nested / "ignored.json").write_text("{}\n", encoding="utf-8")
+
+            loaded = run_evaluator.SkillLoader(skill).load()
+            relative_paths = [path.relative_to(skill).as_posix() for path, _ in loaded]
+
+            self.assertEqual(
+                relative_paths,
+                ["SKILL.md", "references/a.md", "references/nested/b.md"],
+            )
+
     def test_every_profile_renders_the_shared_core(self) -> None:
         for profile_path in sorted(run_evaluator.DEFAULT_PROFILE.parent.glob("*.json")):
             with self.subTest(profile=profile_path.name):
